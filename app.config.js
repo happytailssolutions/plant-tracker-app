@@ -1,4 +1,6 @@
-require('dotenv').config();
+if (process.env.EAS_BUILD !== 'true') {
+  require('dotenv').config();
+}
 
 export default {
   expo: {
@@ -10,12 +12,7 @@ export default {
     orientation: "portrait",
     android: {
       package: "com.planttracker",
-      googleServicesFile: "./google-services.json",
-      config: {
-        googleSignIn: {
-          apiKey: process.env.GOOGLE_SIGN_IN_API_KEY
-        }
-      }
+      googleServicesFile: "./google-services.json"
     },
     ios: {
       bundleIdentifier: "com.planttracker",
@@ -33,9 +30,7 @@ export default {
       EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
       EXPO_PUBLIC_GOOGLE_CLIENT_SECRET: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_SECRET,
       googleClientId: process.env.GOOGLE_CLIENT_ID,
-      googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+      googleClientSecret: process.env.GOOGLE_CLIENT_SECRET
     },
     plugins: [
       "@react-native-google-signin/google-signin",
