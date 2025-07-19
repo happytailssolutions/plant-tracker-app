@@ -9,8 +9,8 @@ const httpLink = createHttpLink({
 });
 
 // Create the auth link that adds the JWT token to requests
-const authLink = setContext((_, { headers }) => {
-  // Get the token from the auth store
+const authLink = setContext(async (_, { headers }) => {
+  // Asynchronously get the token from the auth store
   const token = useAuthStore.getState().token;
   
   // Return the headers to the context so httpLink can read them

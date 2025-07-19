@@ -22,7 +22,7 @@ export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { setToken, clearAuth, isAuthenticated } = useAuthStore();
+  const { setToken, clearAuth, isAuthenticated, setAuthInitialized } = useAuthStore();
 
   const initializeAuth = useCallback(async () => {
     console.log('useAuth: Starting auth initialization.');
@@ -38,11 +38,15 @@ export const useAuth = () => {
         setToken(storedToken, user);
       } else {
         console.log('useAuth: No stored token or user data.');
+        clearAuth();
       }
     } catch (err) {
       console.error('useAuth: Failed to initialize:', err);
       await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
       await SecureStore.deleteItemAsync(USER_DATA_KEY);
+      clearAuth();
+    } finally {
+      setAuthInitialized(true);
     }
     console.log('useAuth: Auth initialization finished.');
   }, [setToken]);

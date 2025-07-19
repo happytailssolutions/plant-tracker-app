@@ -14,7 +14,7 @@ import { useAuthStore } from '@/src/state/authStore';
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { initializeAuth } = useAuth();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isAuthInitialized } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
 
@@ -27,19 +27,21 @@ export default function RootLayout() {
   }, [initializeAuth]);
 
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || !isAuthInitialized) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
     if (isAuthenticated && !inAuthGroup) {
-      router.replace('/(tabs)/');
+      router.replace('/(tabs)');
+    } else if (!isAuthenticated && inAuthGroup) {
+      // Already in the auth group, no need to navigate.
     } else if (!isAuthenticated) {
       router.replace('/(auth)/login');
     }
-  }, [isAuthenticated, segments, loaded]);
+  }, [isAuthenticated, segments, loaded, isAuthInitialized]);
 
-  if (!loaded) {
-    // Async font loading only occurs in development.
+  if (!loaded || !isAuthInitialized) {
+    // Show a loading indicator or splash screen while fonts and auth are loading.
     return null;
   }
 
