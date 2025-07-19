@@ -40,3 +40,7 @@ app-example
 
 # dotenv environment variables file
 .env
+
+# native files
+/android
+/ios
