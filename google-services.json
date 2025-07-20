@@ -13,19 +13,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "788884586325-uc212icuhtv5vqg5bq2e3va8oa35j40g.apps.googleusercontent.com",
-          "client_type": 1,
+          "client_id": "788884586325-85a90b2qeg935vk088b4k1budjbf724v.apps.googleusercontent.com",
+          "client_type": 3,
           "android_info": {
             "package_name": "com.planttracker",
-            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
-          }
-        },
-        {
-          "client_id": "788884586325-uc212icuhtv5vqg5bq2e3va8oa35j40g.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.planttracker",
-            "certificate_hash": "4b1051ca3a96bef47bfb832ff242896b634aae37"
+            "certificate_hash": "548a05f8ba94d91988ae1bf8954c4dbe59330c5a"
           }
         }
       ],
@@ -40,5 +32,6 @@
         }
       }
     }
-  ]
+  ],
+  "configuration_version": "1"
 } 
