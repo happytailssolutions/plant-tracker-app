@@ -1,9 +1,10 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { ApolloProvider } from '@apollo/client';
+import { View, ActivityIndicator } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { apolloClient } from '@/src/api/apollo-client';
@@ -31,28 +32,29 @@ export default function RootLayout() {
 
     const inAuthGroup = segments[0] === '(auth)';
 
-    if (isAuthenticated && !inAuthGroup) {
-      router.replace('/(tabs)');
-    } else if (!isAuthenticated && inAuthGroup) {
-      // Already in the auth group, no need to navigate.
-    } else if (!isAuthenticated) {
-      router.replace('/(auth)/login');
+    if (isAuthenticated && inAuthGroup) {
+      // User is authenticated but in auth group, redirect to tabs
+      setTimeout(() => router.replace('/(tabs)'), 0);
+    } else if (!isAuthenticated && !inAuthGroup) {
+      // User is not authenticated and not in auth group, redirect to login
+      setTimeout(() => router.replace('/(auth)/login'), 0);
     }
-  }, [isAuthenticated, segments, loaded, isAuthInitialized]);
-
-  if (!loaded || !isAuthInitialized) {
-    // Show a loading indicator or splash screen while fonts and auth are loading.
-    return null;
-  }
+  }, [isAuthenticated, segments, loaded, isAuthInitialized, router]);
 
   return (
     <ApolloProvider client={apolloClient}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
+        {!loaded || !isAuthInitialized ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" />
+          </View>
+        ) : (
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        )}
         <StatusBar style="auto" />
       </ThemeProvider>
     </ApolloProvider>

@@ -2,6 +2,11 @@ if (process.env.EAS_BUILD !== 'true') {
   require('dotenv').config();
 }
 
+// Debug: log environment variables
+console.log('Environment variables check:');
+console.log('EXPO_PUBLIC_SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
+console.log('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID:', process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
+
 export default {
   expo: {
     name: "Plant Tracker",
@@ -15,8 +20,7 @@ export default {
       googleServicesFile: "./google-services.json"
     },
     ios: {
-      bundleIdentifier: "com.planttracker",
-      googleServicesFile: "./GoogleService-Info.plist"
+      bundleIdentifier: "com.planttracker"
     },
     extra: {
       eas: {
@@ -30,7 +34,8 @@ export default {
       EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
       EXPO_PUBLIC_GOOGLE_CLIENT_SECRET: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_SECRET,
       googleClientId: process.env.GOOGLE_CLIENT_ID,
-      googleClientSecret: process.env.GOOGLE_CLIENT_SECRET
+      googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      EXPO_PUBLIC_IOS_CLIENT_ID: process.env.EXPO_PUBLIC_IOS_CLIENT_ID
     },
     plugins: [
       "@react-native-google-signin/google-signin",
