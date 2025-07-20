@@ -15,11 +15,6 @@ GoogleSignin.configure({
   iosClientId: Constants.expoConfig?.extra?.EXPO_PUBLIC_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
 });
 
-// Debug: Log the configuration values
-console.log('GoogleSignin Configuration:');
-console.log('webClientId:', Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
-console.log('iosClientId:', Constants.expoConfig?.extra?.EXPO_PUBLIC_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_IOS_CLIENT_ID);
-
 const AUTH_TOKEN_KEY = 'auth_token';
 const USER_DATA_KEY = 'user_data';
 

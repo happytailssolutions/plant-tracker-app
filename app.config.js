@@ -38,7 +38,13 @@ export default {
       EXPO_PUBLIC_IOS_CLIENT_ID: process.env.EXPO_PUBLIC_IOS_CLIENT_ID
     },
     plugins: [
-      "@react-native-google-signin/google-signin",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "webClientId": "788884586325-uc212icuhtv5vqg5bq2e3va8oa35j40g.apps.googleusercontent.com",
+          "googleServicesFile": "./google-services.json"
+        }
+      ],
       "expo-router"
     ]
   }
