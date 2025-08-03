@@ -107,6 +107,29 @@ export const typography = {
       fontWeight: '400',
       letterSpacing: 0.1,
     },
+  },
+
+  // Direct typography access (for backward compatibility)
+  body: {
+    large: {
+      fontSize: 17,
+      lineHeight: 24,
+      fontWeight: '400',
+      letterSpacing: 0,
+    },
+    medium: {
+      fontSize: 15,
+      lineHeight: 20,
+      fontWeight: '400',
+      letterSpacing: 0,
+    },
+    small: {
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '400',
+      letterSpacing: 0.1,
+    },
+  },
 
     // Special Text
     caption: {
