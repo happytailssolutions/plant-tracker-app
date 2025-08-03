@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { GoogleSignin, statusCodes, User } from '@react-native-google-signin/google-signin';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import * as SecureStore from 'expo-secure-store';
 import { useAuthStore } from '../state/authStore';
 import { supabase } from '../api/supabase';
@@ -7,11 +7,8 @@ import Constants from 'expo-constants';
 
 // Initialize Google Sign-In
 GoogleSignin.configure({
-  // Your web client ID from Google Cloud Console
   webClientId: Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  // Enable offline access
   offlineAccess: true,
-  // For iOS only
   iosClientId: Constants.expoConfig?.extra?.EXPO_PUBLIC_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
 });
 
@@ -35,72 +32,84 @@ export const useAuth = () => {
       
       if (storedToken && storedUserData) {
         const user = JSON.parse(storedUserData);
+        console.log('useAuth: Restoring session for user:', user.email);
         setToken(storedToken, user);
       } else {
         console.log('useAuth: No stored token or user data.');
         clearAuth();
       }
     } catch (err) {
-      console.error('useAuth: Failed to initialize:', err);
+      console.error('useAuth: Failed to initialize auth from storage:', err);
       await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
       await SecureStore.deleteItemAsync(USER_DATA_KEY);
       clearAuth();
     } finally {
       setAuthInitialized(true);
+      console.log('useAuth: Auth initialization finished.');
     }
-    console.log('useAuth: Auth initialization finished.');
-  }, [setToken]);
+  }, [setToken, clearAuth, setAuthInitialized]);
 
   const signInWithGoogle = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    console.log('useAuth: Starting Google Sign-In process.');
     
     try {
-      // Check if Play Services are available
+      console.log('useAuth: Checking for Google Play Services.');
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      console.log('useAuth: Google Play Services are available.');
       
-      // Sign in with Google
+      console.log('useAuth: Initiating Google Sign-In prompt.');
       const { user: googleUser } = await GoogleSignin.signIn();
+      console.log('useAuth: Google Sign-In successful. User:', googleUser.email);
       
-      // Get tokens
-      const { accessToken, idToken } = await GoogleSignin.getTokens();
+      console.log('useAuth: Getting tokens from Google.');
+      const { idToken } = await GoogleSignin.getTokens();
       
       if (!idToken) {
+        console.error('useAuth: Failed to get ID token from Google.');
         throw new Error('Failed to get ID token from Google Sign-In');
       }
+      console.log('useAuth: Successfully received ID token from Google.');
 
-      // Sign in to Supabase with the Google ID token
+      const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
+      console.log(`useAuth: Attempting to sign in to Supabase at ${supabaseUrl}`);
       const { data, error: supabaseError } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
       });
 
       if (supabaseError) {
+        console.error('useAuth: Supabase sign-in error:', JSON.stringify(supabaseError, null, 2));
         throw supabaseError;
       }
+      console.log('useAuth: Supabase sign-in successful.');
 
       if (!data.session || !data.user) {
+        console.error('useAuth: No session or user data returned from Supabase.');
         throw new Error('No session or user data returned from Supabase');
       }
+      console.log('useAuth: Supabase returned session and user data.');
 
-      // Construct user data object
       const userData = {
         id: data.user.id,
         email: data.user.email || googleUser.email || '',
-        name: data.user.user_metadata?.full_name || 
-              googleUser.name || 
-              '',
+        name: data.user.user_metadata?.full_name || googleUser.name || '',
       };
+      console.log('useAuth: Constructed user data:', userData);
 
-      // Store authentication data
+      console.log('useAuth: Storing auth token and user data in SecureStore.');
       await SecureStore.setItemAsync(AUTH_TOKEN_KEY, data.session.access_token);
       await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(userData));
+      console.log('useAuth: Storage successful.');
       
-      // Update auth store
+      console.log('useAuth: Updating auth store state.');
       setToken(data.session.access_token, userData);
+      console.log('useAuth: Google Sign-In process completed successfully.');
 
     } catch (err: any) {
       console.error('Google Sign-In error:', err);
+      console.error('Full Google Sign-In error object:', JSON.stringify(err, null, 2));
       
       if (err.code === statusCodes.SIGN_IN_CANCELLED) {
         setError('Sign-in was cancelled');
@@ -118,17 +127,10 @@ export const useAuth = () => {
 
   const signOut = useCallback(async () => {
     try {
-      // Sign out from Google
       await GoogleSignin.signOut();
-      
-      // Sign out from Supabase
       await supabase.auth.signOut();
-      
-      // Clear stored credentials
       await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
       await SecureStore.deleteItemAsync(USER_DATA_KEY);
-      
-      // Clear auth store
       clearAuth();
     } catch (err: any) {
       console.error('Sign out error:', err);
@@ -144,4 +146,4 @@ export const useAuth = () => {
     error,
     isAuthenticated,
   };
-}; 
+};

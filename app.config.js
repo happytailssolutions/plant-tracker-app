@@ -2,6 +2,11 @@ if (process.env.EAS_BUILD !== 'true') {
   require('dotenv').config();
 }
 
+// Add a warning about cleartext traffic for production builds
+console.warn(
+  'WARNING: The `usesCleartextTraffic` flag is enabled for Android in `app.config.js`. This is insecure and intended for development only. Remember to set this to `false` before creating a production build.'
+);
+
 // Debug: log environment variables
 console.log('Environment variables check:');
 console.log('EXPO_PUBLIC_SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
@@ -17,7 +22,8 @@ export default {
     orientation: "portrait",
     android: {
       package: "com.planttracker",
-      googleServicesFile: "./google-services.json"
+      googleServicesFile: "./google-services.json",
+      usesCleartextTraffic: true
     },
     ios: {
       bundleIdentifier: "com.planttracker"
