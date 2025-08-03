@@ -17,6 +17,7 @@ import { PinEditorForm } from './PinEditorForm';
 import { ConfirmationDialog } from '../common/ConfirmationDialog';
 import { TagBubbleList, TagInput } from '../common';
 import { useMapStore } from '../../state/mapStore';
+import { getCurrentTags } from '../../utils/tagUtils';
 
 interface PinDetailSheetProps {
   pinId: string | null;
@@ -116,17 +117,16 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
   };
 
   // Get current tags from pin metadata
-  const getCurrentTags = (): string[] => {
-    if (!pin?.metadata) return [];
-    const metadata = pin.metadata as any;
-    return metadata.tags || [];
+  const getCurrentTagsFromPin = (): string[] => {
+    if (!pin) return [];
+    return getCurrentTags(pin);
   };
 
   // Handle adding a new tag
   const handleAddTag = (newTag: string) => {
     if (!pinId) return;
     
-    const currentTags = getCurrentTags();
+    const currentTags = getCurrentTagsFromPin();
     const updatedTags = [...currentTags, newTag];
     
     updatePin({
@@ -148,7 +148,7 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
   const handleRemoveTag = (tagToRemove: string) => {
     if (!pinId) return;
     
-    const currentTags = getCurrentTags();
+    const currentTags = getCurrentTagsFromPin();
     const updatedTags = currentTags.filter(tag => tag !== tagToRemove);
     
     updatePin({
@@ -304,13 +304,13 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                   {showTagInput && (
                     <TagInput
                       onAddTag={handleAddTag}
-                      existingTags={getCurrentTags()}
+                      existingTags={getCurrentTagsFromPin()}
                       placeholder="Enter tag name..."
                     />
                   )}
                   
                   <TagBubbleList
-                    tags={getCurrentTags()}
+                    tags={getCurrentTagsFromPin()}
                     onTagPress={handleTagPress}
                     onTagRemove={handleRemoveTag}
                     removable={true}

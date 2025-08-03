@@ -12,10 +12,14 @@ interface MapState {
   // State
   selectedProjectId: string | null;
   selectedPinId: string | null;
-  selectedTag: string | null;
+  selectedTags: string[];
   region: Region | null;
   autoCenterMode: AutoCenterMode;
   isCentering: boolean;
+  
+  // Tag Selection Modal State
+  isTagSelectionOpen: boolean;
+  availableTags: string[];
   
   // Preview Pin State
   previewPinMode: boolean;
@@ -25,7 +29,9 @@ interface MapState {
   // Actions
   setSelectedProject: (projectId: string | null) => void;
   setSelectedPin: (pinId: string | null) => void;
-  setSelectedTag: (tag: string | null) => void;
+  addSelectedTag: (tag: string) => void;
+  removeSelectedTag: (tag: string) => void;
+  clearSelectedTags: () => void;
   setRegion: (region: Region) => void;
   setAutoCenterMode: (mode: AutoCenterMode) => void;
   setCentering: (isCentering: boolean) => void;
@@ -33,6 +39,11 @@ interface MapState {
   setTagAndNavigate: (tag: string) => void;
   clearSelection: () => void;
   resetMapState: () => void;
+  
+  // Tag Selection Modal Actions
+  openTagSelection: () => void;
+  closeTagSelection: () => void;
+  setAvailableTags: (tags: string[]) => void;
   
   // Preview Pin Actions
   setPreviewPinMode: (active: boolean) => void;
@@ -42,14 +53,18 @@ interface MapState {
   exitPreviewMode: () => void;
 }
 
-export const useMapStore = create<MapState>((set) => ({
+export const useMapStore = create<MapState>((set, get) => ({
   // Initial state
   selectedProjectId: null,
   selectedPinId: null,
-  selectedTag: null,
+  selectedTags: [],
   region: null,
   autoCenterMode: null,
   isCentering: false,
+  
+  // Tag Selection Modal Initial State
+  isTagSelectionOpen: false,
+  availableTags: [],
   
   // Preview Pin Initial State
   previewPinMode: false,
@@ -63,8 +78,20 @@ export const useMapStore = create<MapState>((set) => ({
   setSelectedPin: (pinId: string | null) => 
     set({ selectedPinId: pinId }),
     
-  setSelectedTag: (tag: string | null) => 
-    set({ selectedTag: tag }),
+  addSelectedTag: (tag: string) => 
+    set((state) => ({
+      selectedTags: state.selectedTags.includes(tag) 
+        ? state.selectedTags 
+        : [...state.selectedTags, tag]
+    })),
+    
+  removeSelectedTag: (tag: string) => 
+    set((state) => ({
+      selectedTags: state.selectedTags.filter(t => t !== tag)
+    })),
+    
+  clearSelectedTags: () => 
+    set({ selectedTags: [] }),
     
   setRegion: (region: Region) => 
     set({ region }),
@@ -78,14 +105,14 @@ export const useMapStore = create<MapState>((set) => ({
   setProjectAndNavigate: (projectId: string) => 
     set({ 
       selectedProjectId: projectId,
-      selectedTag: null, // Clear tag filter when switching projects
+      selectedTags: [], // Clear tag filters when switching projects
       autoCenterMode: 'project-pins',
       isCentering: true,
     }),
     
   setTagAndNavigate: (tag: string) => 
     set({ 
-      selectedTag: tag,
+      selectedTags: [tag], // Replace with single tag for backward compatibility
       selectedPinId: null, // Clear selected pin when filtering by tag
       autoCenterMode: 'project-pins',
       isCentering: true,
@@ -95,7 +122,7 @@ export const useMapStore = create<MapState>((set) => ({
     set({
       selectedProjectId: null,
       selectedPinId: null,
-      selectedTag: null,
+      selectedTags: [],
       autoCenterMode: null,
     }),
     
@@ -103,14 +130,26 @@ export const useMapStore = create<MapState>((set) => ({
     set({
       selectedProjectId: null,
       selectedPinId: null,
-      selectedTag: null,
+      selectedTags: [],
       region: null,
       autoCenterMode: null,
       isCentering: false,
+      isTagSelectionOpen: false,
+      availableTags: [],
       previewPinMode: false,
       previewPinCoordinates: null,
       lastUsedPinType: 'plant',
     }),
+    
+  // Tag Selection Modal Actions
+  openTagSelection: () => 
+    set({ isTagSelectionOpen: true }),
+    
+  closeTagSelection: () => 
+    set({ isTagSelectionOpen: false }),
+    
+  setAvailableTags: (tags: string[]) => 
+    set({ availableTags: tags }),
     
   // Preview Pin Actions
   setPreviewPinMode: (active: boolean) => 

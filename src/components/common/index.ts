@@ -4,4 +4,5 @@ export { ConfirmationDialog } from './ConfirmationDialog';
 export { default as ImagePicker } from './ImagePicker';
 export { default as Dropdown } from './Dropdown';
 export { TagBubble, TagBubbleList } from './TagBubble';
-export { TagInput } from './TagInput'; 
+export { TagInput } from './TagInput';
+export { TagSelectionModal } from './TagSelectionModal'; 

@@ -7,11 +7,12 @@ import { MY_PROJECTS_QUERY, MyProjectsQueryResponse } from '../api/queries/proje
 import { CREATE_PIN_MUTATION, CreatePinMutationResponse, CreatePinMutationVariables } from '../api/mutations/pinMutations';
 import { MapMarker, PreviewPinMarker, PreviewPinControls } from '../components/map';
 import { PinEditorForm, PinDetailSheet } from '../components/pins';
-import { TagBubble } from '../components/common';
+import { TagBubble, TagSelectionModal } from '../components/common';
 import { colors, spacing, components } from '../styles/theme';
 import { useMapStore } from '../state/mapStore';
 import { useLocation } from '../hooks/useLocation';
 import { calculateBoundsFromPins, createRegionFromCoordinates, validateRegion, DEFAULT_REGION } from '../utils/mapUtils';
+import { filterPinsByTags, extractUniqueTags } from '../utils/tagUtils';
 
 // Debounce delay for map region changes (in milliseconds)
 const DEBOUNCE_DELAY = 500;
@@ -33,20 +34,27 @@ export const MapScreen: React.FC = () => {
   // Map store state
   const selectedProjectId = useMapStore((state) => state.selectedProjectId);
   const selectedPinId = useMapStore((state) => state.selectedPinId);
-  const selectedTag = useMapStore((state) => state.selectedTag);
+  const selectedTags = useMapStore((state) => state.selectedTags);
   const autoCenterMode = useMapStore((state) => state.autoCenterMode);
   const isCentering = useMapStore((state) => state.isCentering);
   const previewPinMode = useMapStore((state) => state.previewPinMode);
   const previewPinCoordinates = useMapStore((state) => state.previewPinCoordinates);
   const lastUsedPinType = useMapStore((state) => state.lastUsedPinType);
+  const isTagSelectionOpen = useMapStore((state) => state.isTagSelectionOpen);
+  const availableTags = useMapStore((state) => state.availableTags);
   const setSelectedPin = useMapStore((state) => state.setSelectedPin);
-  const setSelectedTag = useMapStore((state) => state.setSelectedTag);
+  const addSelectedTag = useMapStore((state) => state.addSelectedTag);
+  const removeSelectedTag = useMapStore((state) => state.removeSelectedTag);
+  const clearSelectedTags = useMapStore((state) => state.clearSelectedTags);
   const setAutoCenterMode = useMapStore((state) => state.setAutoCenterMode);
   const setCentering = useMapStore((state) => state.setCentering);
   const enterPreviewMode = useMapStore((state) => state.enterPreviewMode);
   const exitPreviewMode = useMapStore((state) => state.exitPreviewMode);
   const setPreviewPinCoordinates = useMapStore((state) => state.setPreviewPinCoordinates);
   const setLastUsedPinType = useMapStore((state) => state.setLastUsedPinType);
+  const openTagSelection = useMapStore((state) => state.openTagSelection);
+  const closeTagSelection = useMapStore((state) => state.closeTagSelection);
+  const setAvailableTags = useMapStore((state) => state.setAvailableTags);
   
   // Location hook
   const { getCurrentLocation, loading: locationLoading } = useLocation();
@@ -68,15 +76,23 @@ export const MapScreen: React.FC = () => {
     }
   );
 
-  // GraphQL query for fetching all pins of the selected project (for centering)
+  // GraphQL query for fetching all pins of the selected project (for centering and tag extraction)
   const { data: projectPinsData, loading: projectPinsLoading } = useQuery<PinsByProjectQueryResponse>(
     PINS_BY_PROJECT_QUERY,
     {
       variables: { projectId: selectedProjectId! },
-      skip: !selectedProjectId || autoCenterMode !== 'project-pins',
+      skip: !selectedProjectId,
       fetchPolicy: 'cache-and-network',
     }
   );
+
+  // Extract available tags from project pins
+  useEffect(() => {
+    if (projectPinsData?.pinsByProject) {
+      const tags = extractUniqueTags(projectPinsData.pinsByProject);
+      setAvailableTags(tags);
+    }
+  }, [projectPinsData, setAvailableTags]);
 
   // GraphQL mutation for creating pins
   const [createPin] = useMutation<CreatePinMutationResponse, CreatePinMutationVariables>(
@@ -244,7 +260,7 @@ export const MapScreen: React.FC = () => {
     }
 
     // If there's a tag filter, use the filtered pins for centering
-    const pinsToCenter = selectedTag ? filterPinsByTag(pins, selectedTag) : pins;
+    const pinsToCenter = selectedTags.length > 0 ? filterPinsByTags(pins, selectedTags) : pins;
     
     if (pinsToCenter.length === 0) {
       // No pins match the tag filter, center on user location
@@ -263,7 +279,7 @@ export const MapScreen: React.FC = () => {
     
     setCentering(false);
     setAutoCenterMode(null);
-  }, [setAutoCenterMode, setCentering, selectedTag]);
+  }, [setAutoCenterMode, setCentering, selectedTags]);
 
   // Center map on user location
   const centerMapOnUserLocation = useCallback(async () => {
@@ -336,20 +352,8 @@ export const MapScreen: React.FC = () => {
     }
   }, [error]);
 
-  // Filter pins by selected tag if any
-  const filterPinsByTag = (pins: Pin[], tag: string | null): Pin[] => {
-    if (!tag) return pins;
-    
-    return pins.filter(pin => {
-      if (!pin.metadata) return false;
-      const metadata = pin.metadata as any;
-      const tags = metadata.tags || [];
-      return tags.includes(tag);
-    });
-  };
-
   const allPins = data?.pinsInBounds || [];
-  const pins = filterPinsByTag(allPins, selectedTag);
+  const pins = filterPinsByTags(allPins, selectedTags);
 
   return (
     <View style={styles.container}>
@@ -406,24 +410,37 @@ export const MapScreen: React.FC = () => {
         <View style={styles.pinCountContainer}>
           <View style={styles.pinCountBadge}>
             <Text style={styles.pinCountText}>
-              {selectedTag ? `${pins.length} pins with "${selectedTag}"` : `${pins.length} pins`}
+              {selectedTags.length > 0 
+                ? `${pins.length} pins with ${selectedTags.length} tag${selectedTags.length > 1 ? 's' : ''}`
+                : `${pins.length} pins`
+              }
             </Text>
           </View>
         </View>
       )}
 
       {/* Tag filter indicator */}
-      {selectedTag && (
+      {selectedTags.length > 0 && (
         <View style={styles.tagFilterContainer}>
           <View style={styles.tagFilterBadge}>
-            <TagBubble
-              tag={selectedTag}
-              selected={true}
-              onPress={() => setSelectedTag(null)}
-            />
+            {selectedTags.map((tag, index) => (
+              <TagBubble
+                key={`${tag}-${index}`}
+                tag={tag}
+                selected={true}
+                removable={true}
+                onRemove={() => removeSelectedTag(tag)}
+              />
+            ))}
+            <TouchableOpacity
+              style={styles.addTagButton}
+              onPress={openTagSelection}
+            >
+              <Text style={styles.addTagButtonText}>Add Tag</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.clearFilterButton}
-              onPress={() => setSelectedTag(null)}
+              onPress={clearSelectedTags}
             >
               <Text style={styles.clearFilterText}>Clear</Text>
             </TouchableOpacity>
@@ -459,10 +476,10 @@ export const MapScreen: React.FC = () => {
          mode="create"
          latitude={previewPinCoordinates?.latitude || region.latitude}
          longitude={previewPinCoordinates?.longitude || region.longitude}
-         initialData={previewPinCoordinates ? { 
-           pinType: lastUsedPinType,
-           projectId: selectedProjectId 
-         } : { projectId: selectedProjectId }}
+                   initialData={previewPinCoordinates ? {
+            pinType: lastUsedPinType,
+            projectId: selectedProjectId || undefined
+          } : { projectId: selectedProjectId || undefined }}
        />
 
       {/* Pin Detail Sheet */}
@@ -478,6 +495,15 @@ export const MapScreen: React.FC = () => {
           // Refetch pins after update
           refetch();
         }}
+      />
+
+      {/* Tag Selection Modal */}
+      <TagSelectionModal
+        visible={isTagSelectionOpen}
+        availableTags={availableTags}
+        selectedTags={selectedTags}
+        onTagSelect={addSelectedTag}
+        onClose={closeTagSelection}
       />
     </View>
   );
@@ -555,11 +581,24 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  addTagButton: {
+    backgroundColor: colors.primary.darkGreen,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: spacing.xs,
+    marginLeft: spacing.xs,
+  },
+  addTagButtonText: {
+    color: colors.background.white,
+    fontSize: 12,
+    fontWeight: '600',
+  },
   clearFilterButton: {
     backgroundColor: colors.functional.error,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: spacing.xs,
+    marginLeft: spacing.xs,
   },
   clearFilterText: {
     color: colors.background.white,
