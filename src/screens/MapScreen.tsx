@@ -2,13 +2,14 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import { useQuery, useMutation } from '@apollo/client';
+import { useRouter } from 'expo-router';
 import { PINS_QUERY, PINS_BY_PROJECT_QUERY, PinsInBoundsQueryResponse, PinsByProjectQueryResponse, MapBounds, Pin } from '../api/queries/pinQueries';
 import { MY_PROJECTS_QUERY, MyProjectsQueryResponse } from '../api/queries/projectQueries';
 import { CREATE_PIN_MUTATION, CreatePinMutationResponse, CreatePinMutationVariables } from '../api/mutations/pinMutations';
 import { MapMarker, PreviewPinMarker, PreviewPinControls, LayerSwitcher } from '../components/map';
 import { PinEditorForm, PinDetailSheet } from '../components/pins';
 import { TagBubble, TagSelectionModal } from '../components/common';
-import { colors, spacing, components } from '../styles/theme';
+import { colors, spacing, components, typography } from '../styles/theme';
 import { useMapStore } from '../state/mapStore';
 import { useLocation } from '../hooks/useLocation';
 import { calculateBoundsFromPins, createRegionFromCoordinates, validateRegion, DEFAULT_REGION } from '../utils/mapUtils';
@@ -30,6 +31,7 @@ export const MapScreen: React.FC = () => {
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const previewCoordinateTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const mapRef = useRef<MapView>(null);
+  const router = useRouter();
   
   // Map store state
   const selectedProjectId = useMapStore((state) => state.selectedProjectId);
@@ -182,15 +184,17 @@ export const MapScreen: React.FC = () => {
 
   // Handle quick add pin
   const handleQuickAddPin = useCallback(async (coordinates: { latitude: number; longitude: number }, pinType: string) => {
+    if (!selectedProjectId) {
+      Alert.alert('No Project Selected', 'Please select a project first before adding pins.');
+      return;
+    }
+
     if (!projectsData?.myProjects || projectsData.myProjects.length === 0) {
       Alert.alert('No Projects', 'You need to create a project first before adding pins.');
       return;
     }
 
-    // Use the currently selected project, or fall back to the first project if none selected
-    const projectId = selectedProjectId || projectsData.myProjects[0].id;
-    
-    console.log('Quick add using project ID:', projectId, 'Selected project ID:', selectedProjectId);
+    console.log('Quick add using project ID:', selectedProjectId);
     
     try {
       // Create pin with minimal data
@@ -199,7 +203,7 @@ export const MapScreen: React.FC = () => {
         description: `Quickly added ${pinType}`,
         pinType,
         status: 'active',
-        projectId,
+        projectId: selectedProjectId,
         isPublic: false,
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
@@ -236,7 +240,7 @@ export const MapScreen: React.FC = () => {
       console.error('Quick add pin error:', error);
       Alert.alert('Error', 'Failed to create pin. Please try again.');
     }
-  }, [projectsData, setLastUsedPinType, exitPreviewMode, createPin, refetch, mapBounds, selectedProjectId]);
+  }, [selectedProjectId, projectsData, setLastUsedPinType, exitPreviewMode, createPin, refetch, mapBounds]);
 
   // Handle preview pin cancel
   const handlePreviewPinCancel = useCallback(() => {
@@ -353,6 +357,31 @@ export const MapScreen: React.FC = () => {
       );
     }
   }, [error]);
+
+  const handleSelectProject = () => {
+    router.push('/(tabs)/projects');
+  };
+
+  const renderNoProjectSelected = () => (
+    <View style={styles.noProjectContainer}>
+      <Text style={styles.noProjectTitle}>No Project Selected</Text>
+      <Text style={styles.noProjectSubtitle}>
+        Please select a project to view its map
+      </Text>
+      <TouchableOpacity style={styles.selectProjectButton} onPress={handleSelectProject}>
+        <Text style={styles.selectProjectButtonText}>Select Project</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // If no project is selected, show the no project message
+  if (!selectedProjectId) {
+    return (
+      <View style={styles.container}>
+        {renderNoProjectSelected()}
+      </View>
+    );
+  }
 
   const allPins = data?.pinsInBounds || [];
   const pins = filterPinsByTags(allPins, selectedTags);
@@ -626,5 +655,34 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.background.white,
     lineHeight: 28,
+  },
+  noProjectContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+    backgroundColor: colors.background.light,
+  },
+  noProjectTitle: {
+    ...typography.textStyles.h2,
+    color: colors.functional.darkGray,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  noProjectSubtitle: {
+    ...typography.textStyles.body,
+    color: colors.functional.neutral,
+    marginBottom: spacing.xl,
+    textAlign: 'center',
+  },
+  selectProjectButton: {
+    backgroundColor: colors.primary.darkGreen,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: spacing.md,
+  },
+  selectProjectButtonText: {
+    ...typography.textStyles.button,
+    color: colors.background.white,
   },
 }); 
