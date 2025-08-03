@@ -166,8 +166,10 @@ export const MapScreen: React.FC = () => {
       return;
     }
 
-    // Use the first project for quick add
-    const projectId = projectsData.myProjects[0].id;
+    // Use the currently selected project, or fall back to the first project if none selected
+    const projectId = selectedProjectId || projectsData.myProjects[0].id;
+    
+    console.log('Quick add using project ID:', projectId, 'Selected project ID:', selectedProjectId);
     
     try {
       // Create pin with minimal data
@@ -403,16 +405,19 @@ export const MapScreen: React.FC = () => {
         />
       )}
 
-      {/* Pin Editor Modal */}
-      <PinEditorForm
-        visible={isPinEditorVisible}
-        onClose={handlePinEditorClose}
-        projects={projectsData?.myProjects || []}
-        mode="create"
-        latitude={previewPinCoordinates?.latitude || region.latitude}
-        longitude={previewPinCoordinates?.longitude || region.longitude}
-        initialData={previewPinCoordinates ? { pinType: lastUsedPinType } : undefined}
-      />
+             {/* Pin Editor Modal */}
+       <PinEditorForm
+         visible={isPinEditorVisible}
+         onClose={handlePinEditorClose}
+         projects={projectsData?.myProjects || []}
+         mode="create"
+         latitude={previewPinCoordinates?.latitude || region.latitude}
+         longitude={previewPinCoordinates?.longitude || region.longitude}
+         initialData={previewPinCoordinates ? { 
+           pinType: lastUsedPinType,
+           projectId: selectedProjectId 
+         } : { projectId: selectedProjectId }}
+       />
 
       {/* Pin Detail Sheet */}
       <PinDetailSheet
