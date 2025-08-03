@@ -107,6 +107,27 @@ export const typography = {
       fontWeight: '400',
       letterSpacing: 0.1,
     },
+
+    // Special Text
+    caption: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '500',
+      letterSpacing: 0.2,
+    },
+    button: {
+      fontSize: 16,
+      lineHeight: 24,
+      fontWeight: '500',
+      letterSpacing: 0.1,
+    },
+    link: {
+      fontSize: 15,
+      lineHeight: 20,
+      fontWeight: '500',
+      letterSpacing: 0,
+      color: colors.primary.darkGreen,
+    },
   },
 
   // Direct typography access (for backward compatibility)
@@ -128,28 +149,6 @@ export const typography = {
       lineHeight: 18,
       fontWeight: '400',
       letterSpacing: 0.1,
-    },
-  },
-
-    // Special Text
-    caption: {
-      fontSize: 12,
-      lineHeight: 16,
-      fontWeight: '500',
-      letterSpacing: 0.2,
-    },
-    button: {
-      fontSize: 16,
-      lineHeight: 24,
-      fontWeight: '500',
-      letterSpacing: 0.1,
-    },
-    link: {
-      fontSize: 15,
-      lineHeight: 20,
-      fontWeight: '500',
-      letterSpacing: 0,
-      color: colors.primary.darkGreen,
     },
   },
 } as const;
