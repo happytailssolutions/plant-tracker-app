@@ -12,6 +12,7 @@ interface MapState {
   // State
   selectedProjectId: string | null;
   selectedPinId: string | null;
+  selectedTag: string | null;
   region: Region | null;
   autoCenterMode: AutoCenterMode;
   isCentering: boolean;
@@ -24,10 +25,12 @@ interface MapState {
   // Actions
   setSelectedProject: (projectId: string | null) => void;
   setSelectedPin: (pinId: string | null) => void;
+  setSelectedTag: (tag: string | null) => void;
   setRegion: (region: Region) => void;
   setAutoCenterMode: (mode: AutoCenterMode) => void;
   setCentering: (isCentering: boolean) => void;
   setProjectAndNavigate: (projectId: string) => void;
+  setTagAndNavigate: (tag: string) => void;
   clearSelection: () => void;
   resetMapState: () => void;
   
@@ -43,6 +46,7 @@ export const useMapStore = create<MapState>((set) => ({
   // Initial state
   selectedProjectId: null,
   selectedPinId: null,
+  selectedTag: null,
   region: null,
   autoCenterMode: null,
   isCentering: false,
@@ -59,6 +63,9 @@ export const useMapStore = create<MapState>((set) => ({
   setSelectedPin: (pinId: string | null) => 
     set({ selectedPinId: pinId }),
     
+  setSelectedTag: (tag: string | null) => 
+    set({ selectedTag: tag }),
+    
   setRegion: (region: Region) => 
     set({ region }),
     
@@ -71,6 +78,15 @@ export const useMapStore = create<MapState>((set) => ({
   setProjectAndNavigate: (projectId: string) => 
     set({ 
       selectedProjectId: projectId,
+      selectedTag: null, // Clear tag filter when switching projects
+      autoCenterMode: 'project-pins',
+      isCentering: true,
+    }),
+    
+  setTagAndNavigate: (tag: string) => 
+    set({ 
+      selectedTag: tag,
+      selectedPinId: null, // Clear selected pin when filtering by tag
       autoCenterMode: 'project-pins',
       isCentering: true,
     }),
@@ -79,6 +95,7 @@ export const useMapStore = create<MapState>((set) => ({
     set({
       selectedProjectId: null,
       selectedPinId: null,
+      selectedTag: null,
       autoCenterMode: null,
     }),
     
@@ -86,6 +103,7 @@ export const useMapStore = create<MapState>((set) => ({
     set({
       selectedProjectId: null,
       selectedPinId: null,
+      selectedTag: null,
       region: null,
       autoCenterMode: null,
       isCentering: false,

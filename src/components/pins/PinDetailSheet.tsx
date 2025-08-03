@@ -11,10 +11,12 @@ import {
 } from 'react-native';
 import { useQuery, useMutation } from '@apollo/client';
 import { PIN_BY_ID_QUERY, PinByIdQueryResponse } from '../../api/queries/pinQueries';
-import { DELETE_PIN_MUTATION, DeletePinMutationResponse, DeletePinMutationVariables } from '../../api/mutations/pinMutations';
+import { DELETE_PIN_MUTATION, DeletePinMutationResponse, DeletePinMutationVariables, UPDATE_PIN_MUTATION, UpdatePinMutationResponse, UpdatePinMutationVariables } from '../../api/mutations/pinMutations';
 import { colors, typography, spacing, components } from '../../styles/theme';
 import { PinEditorForm } from './PinEditorForm';
 import { ConfirmationDialog } from '../common/ConfirmationDialog';
+import { TagBubbleList, TagInput } from '../common';
+import { useMapStore } from '../../state/mapStore';
 
 interface PinDetailSheetProps {
   pinId: string | null;
@@ -34,6 +36,10 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showTagInput, setShowTagInput] = useState(false);
+  
+  // Map store for tag navigation
+  const setTagAndNavigate = useMapStore((state) => state.setTagAndNavigate);
 
   const { data, loading, error, refetch } = useQuery<PinByIdQueryResponse>(PIN_BY_ID_QUERY, {
     variables: { id: pinId },
@@ -54,6 +60,19 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
       onError: (error) => {
         setDeleteLoading(false);
         Alert.alert('Error', `Failed to delete pin: ${error.message}`);
+      },
+    }
+  );
+
+  const [updatePin] = useMutation<UpdatePinMutationResponse, UpdatePinMutationVariables>(
+    UPDATE_PIN_MUTATION,
+    {
+      onCompleted: () => {
+        refetch();
+        onPinUpdated?.();
+      },
+      onError: (error) => {
+        Alert.alert('Error', `Failed to update pin: ${error.message}`);
       },
     }
   );
@@ -94,6 +113,61 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
     // Refetch pin data to show updated information
     refetch();
     onPinUpdated?.();
+  };
+
+  // Get current tags from pin metadata
+  const getCurrentTags = (): string[] => {
+    if (!pin?.metadata) return [];
+    const metadata = pin.metadata as any;
+    return metadata.tags || [];
+  };
+
+  // Handle adding a new tag
+  const handleAddTag = (newTag: string) => {
+    if (!pinId) return;
+    
+    const currentTags = getCurrentTags();
+    const updatedTags = [...currentTags, newTag];
+    
+    updatePin({
+      variables: {
+        input: {
+          id: pinId,
+          metadata: {
+            ...pin?.metadata,
+            tags: updatedTags,
+          },
+        },
+      },
+    });
+    
+    setShowTagInput(false);
+  };
+
+  // Handle removing a tag
+  const handleRemoveTag = (tagToRemove: string) => {
+    if (!pinId) return;
+    
+    const currentTags = getCurrentTags();
+    const updatedTags = currentTags.filter(tag => tag !== tagToRemove);
+    
+    updatePin({
+      variables: {
+        input: {
+          id: pinId,
+          metadata: {
+            ...pin?.metadata,
+            tags: updatedTags,
+          },
+        },
+      },
+    });
+  };
+
+  // Handle tag press to navigate to map with tag filter
+  const handleTagPress = (tag: string) => {
+    setTagAndNavigate(tag);
+    onClose(); // Close the detail sheet to show the map
   };
 
   const formatDate = (dateString: string) => {
@@ -213,6 +287,37 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                   )}
                 </View>
 
+                {/* Tags */}
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Tags</Text>
+                    <TouchableOpacity
+                      style={styles.addTagButton}
+                      onPress={() => setShowTagInput(!showTagInput)}
+                    >
+                      <Text style={styles.addTagButtonText}>
+                        {showTagInput ? 'Cancel' : 'Add Tag'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {showTagInput && (
+                    <TagInput
+                      onAddTag={handleAddTag}
+                      existingTags={getCurrentTags()}
+                      placeholder="Enter tag name..."
+                    />
+                  )}
+                  
+                  <TagBubbleList
+                    tags={getCurrentTags()}
+                    onTagPress={handleTagPress}
+                    onTagRemove={handleRemoveTag}
+                    removable={true}
+                    emptyMessage="No tags added yet"
+                  />
+                </View>
+
                 {/* Created By */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Created By</Text>
@@ -233,15 +338,24 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                   </View>
                 </View>
 
-                {/* Metadata */}
-                {pin.metadata && Object.keys(pin.metadata).length > 0 && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Additional Info</Text>
-                    <Text style={styles.metadataText}>
-                      {JSON.stringify(pin.metadata, null, 2)}
-                    </Text>
-                  </View>
-                )}
+                {/* Metadata (excluding tags since they're shown separately) */}
+                {pin.metadata && Object.keys(pin.metadata).length > 0 && (() => {
+                  const metadata = pin.metadata as any;
+                  const nonTagMetadata = { ...metadata };
+                  delete nonTagMetadata.tags;
+                  
+                  if (Object.keys(nonTagMetadata).length > 0) {
+                    return (
+                      <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Additional Info</Text>
+                        <Text style={styles.metadataText}>
+                          {JSON.stringify(nonTagMetadata, null, 2)}
+                        </Text>
+                      </View>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* Actions */}
                 <View style={styles.actionsSection}>
@@ -493,5 +607,22 @@ const styles = StyleSheet.create({
   errorText: {
     ...typography.textStyles.body,
     color: colors.functional.error,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  addTagButton: {
+    backgroundColor: colors.accent.blue,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: spacing.xs,
+  },
+  addTagButtonText: {
+    ...typography.textStyles.caption,
+    color: colors.background.white,
+    fontWeight: '600',
   },
 }); 

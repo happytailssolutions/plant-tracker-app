@@ -7,6 +7,7 @@ import { MY_PROJECTS_QUERY, MyProjectsQueryResponse } from '../api/queries/proje
 import { CREATE_PIN_MUTATION, CreatePinMutationResponse, CreatePinMutationVariables } from '../api/mutations/pinMutations';
 import { MapMarker, PreviewPinMarker, PreviewPinControls } from '../components/map';
 import { PinEditorForm, PinDetailSheet } from '../components/pins';
+import { TagBubble } from '../components/common';
 import { colors, spacing, components } from '../styles/theme';
 import { useMapStore } from '../state/mapStore';
 import { useLocation } from '../hooks/useLocation';
@@ -32,12 +33,14 @@ export const MapScreen: React.FC = () => {
   // Map store state
   const selectedProjectId = useMapStore((state) => state.selectedProjectId);
   const selectedPinId = useMapStore((state) => state.selectedPinId);
+  const selectedTag = useMapStore((state) => state.selectedTag);
   const autoCenterMode = useMapStore((state) => state.autoCenterMode);
   const isCentering = useMapStore((state) => state.isCentering);
   const previewPinMode = useMapStore((state) => state.previewPinMode);
   const previewPinCoordinates = useMapStore((state) => state.previewPinCoordinates);
   const lastUsedPinType = useMapStore((state) => state.lastUsedPinType);
   const setSelectedPin = useMapStore((state) => state.setSelectedPin);
+  const setSelectedTag = useMapStore((state) => state.setSelectedTag);
   const setAutoCenterMode = useMapStore((state) => state.setAutoCenterMode);
   const setCentering = useMapStore((state) => state.setCentering);
   const enterPreviewMode = useMapStore((state) => state.enterPreviewMode);
@@ -240,7 +243,16 @@ export const MapScreen: React.FC = () => {
       return;
     }
 
-    const newRegion = calculateBoundsFromPins(pins);
+    // If there's a tag filter, use the filtered pins for centering
+    const pinsToCenter = selectedTag ? filterPinsByTag(pins, selectedTag) : pins;
+    
+    if (pinsToCenter.length === 0) {
+      // No pins match the tag filter, center on user location
+      setAutoCenterMode('user-location');
+      return;
+    }
+
+    const newRegion = calculateBoundsFromPins(pinsToCenter);
     
     if (validateRegion(newRegion)) {
       setRegion(newRegion);
@@ -251,7 +263,7 @@ export const MapScreen: React.FC = () => {
     
     setCentering(false);
     setAutoCenterMode(null);
-  }, [setAutoCenterMode, setCentering]);
+  }, [setAutoCenterMode, setCentering, selectedTag]);
 
   // Center map on user location
   const centerMapOnUserLocation = useCallback(async () => {
@@ -324,7 +336,20 @@ export const MapScreen: React.FC = () => {
     }
   }, [error]);
 
-  const pins = data?.pinsInBounds || [];
+  // Filter pins by selected tag if any
+  const filterPinsByTag = (pins: Pin[], tag: string | null): Pin[] => {
+    if (!tag) return pins;
+    
+    return pins.filter(pin => {
+      if (!pin.metadata) return false;
+      const metadata = pin.metadata as any;
+      const tags = metadata.tags || [];
+      return tags.includes(tag);
+    });
+  };
+
+  const allPins = data?.pinsInBounds || [];
+  const pins = filterPinsByTag(allPins, selectedTag);
 
   return (
     <View style={styles.container}>
@@ -380,7 +405,28 @@ export const MapScreen: React.FC = () => {
       {pins.length > 0 && (
         <View style={styles.pinCountContainer}>
           <View style={styles.pinCountBadge}>
-            <Text style={styles.pinCountText}>{pins.length} pins</Text>
+            <Text style={styles.pinCountText}>
+              {selectedTag ? `${pins.length} pins with "${selectedTag}"` : `${pins.length} pins`}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Tag filter indicator */}
+      {selectedTag && (
+        <View style={styles.tagFilterContainer}>
+          <View style={styles.tagFilterBadge}>
+            <TagBubble
+              tag={selectedTag}
+              selected={true}
+              onPress={() => setSelectedTag(null)}
+            />
+            <TouchableOpacity
+              style={styles.clearFilterButton}
+              onPress={() => setSelectedTag(null)}
+            >
+              <Text style={styles.clearFilterText}>Clear</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -484,6 +530,40 @@ const styles = StyleSheet.create({
   pinCountText: {
     color: colors.background.white,
     fontSize: 14,
+    fontWeight: '600',
+  },
+  tagFilterContainer: {
+    position: 'absolute',
+    top: spacing.xl,
+    left: spacing.lg,
+    right: spacing.lg,
+    zIndex: 1,
+  },
+  tagFilterBadge: {
+    backgroundColor: colors.background.white,
+    borderRadius: spacing.sm,
+    padding: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: colors.functional.neutral,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  clearFilterButton: {
+    backgroundColor: colors.functional.error,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: spacing.xs,
+  },
+  clearFilterText: {
+    color: colors.background.white,
+    fontSize: 12,
     fontWeight: '600',
   },
   fab: {
