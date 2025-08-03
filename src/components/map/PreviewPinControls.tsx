@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, components } from '../../styles/theme';
 import { Dropdown } from '../common';
 import { getLocationDescription, formatCoordinates } from '../../utils/geocoding';
+import Constants from 'expo-constants';
 
 interface PreviewPinCoordinates {
   latitude: number;
@@ -77,9 +78,20 @@ export const PreviewPinControls: React.FC<PreviewPinControlsProps> = ({
     const loadLocationDescription = async () => {
       setIsLoadingLocation(true);
       try {
+        const googleMapsApiKey = Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+        
+        // Debug logging
+        console.log('=== Google Maps API Key Debug ===');
+        console.log('Constants.expoConfig?.extra:', Constants.expoConfig?.extra);
+        console.log('Google Maps API Key loaded:', googleMapsApiKey ? 'YES' : 'NO');
+        console.log('API Key length:', googleMapsApiKey?.length || 0);
+        console.log('API Key starts with:', googleMapsApiKey?.substring(0, 10) || 'N/A');
+        console.log('================================');
+        
         const description = await getLocationDescription(
           coordinates.latitude, 
-          coordinates.longitude
+          coordinates.longitude,
+          googleMapsApiKey
         );
         setLocationDescription(description);
       } catch (error) {

@@ -20,6 +20,11 @@ export const reverseGeocode = async (
   apiKey?: string
 ): Promise<GeocodingResult | null> => {
   try {
+    console.log('=== reverseGeocode called ===');
+    console.log('API Key provided:', !!apiKey);
+    console.log('API Key length:', apiKey?.length || 0);
+    console.log('API Key starts with:', apiKey?.substring(0, 10) || 'N/A');
+    
     if (!apiKey) {
       console.warn('Google Maps API key not provided for geocoding');
       return null;
@@ -97,6 +102,11 @@ export const getLocationDescription = async (
   longitude: number,
   apiKey?: string
 ): Promise<string> => {
+  console.log('=== getLocationDescription called ===');
+  console.log('API Key provided:', !!apiKey);
+  console.log('API Key length:', apiKey?.length || 0);
+  console.log('API Key starts with:', apiKey?.substring(0, 10) || 'N/A');
+  
   const geocodeResult = await reverseGeocode(latitude, longitude, apiKey);
   
   if (geocodeResult) {
