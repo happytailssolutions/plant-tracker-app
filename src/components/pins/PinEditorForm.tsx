@@ -200,14 +200,22 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
 
       setSaveStage('creating');
 
+      // Validate coordinates
+      if (!latitude || !longitude || (latitude === 0 && longitude === 0)) {
+        Alert.alert('Error', 'Invalid location. Please ensure the map is properly loaded and try again.');
+        setSaveLoading(false);
+        setSaveStage('idle');
+        return;
+      }
+
       // Step 2: Create pin with GraphQL mutation
       const pinInput: CreatePinInput = {
         name: formData.name,
         description: formData.description || undefined,
         pinType: formData.pinType,
         status: formData.status,
-        latitude: latitude || 0, // Use provided coordinates or default
-        longitude: longitude || 0,
+        latitude: latitude,
+        longitude: longitude,
         projectId: formData.projectId,
         isPublic: formData.isPublic,
         metadata: {
