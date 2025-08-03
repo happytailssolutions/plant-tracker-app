@@ -7,11 +7,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { useQuery } from '@apollo/client';
 import { useRouter } from 'expo-router';
 import { colors, typography, spacing } from '../styles/theme';
-import { ALL_PINS_QUERY, AllPinsQueryResponse, Pin } from '../api/queries/pinQueries';
+import { PINS_BY_PROJECT_QUERY, PinsByProjectQueryResponse, Pin } from '../api/queries/pinQueries';
 import { MY_PROJECTS_QUERY, MyProjectsQueryResponse } from '../api/queries/projectQueries';
 import { PinListItem } from '../components/pins/PinListItem';
 import { PinDetailSheet } from '../components/pins/PinDetailSheet';
@@ -22,12 +23,18 @@ export const PlantsScreen: React.FC = () => {
   const [showPinDetail, setShowPinDetail] = useState(false);
   const router = useRouter();
   
-  // Map store for tag navigation
+  // Map store for project selection and tag navigation
+  const selectedProjectId = useMapStore((state) => state.selectedProjectId);
   const setTagAndNavigate = useMapStore((state) => state.setTagAndNavigate);
 
-  const { data: pinsData, loading: pinsLoading, error: pinsError, refetch: refetchPins } = useQuery<AllPinsQueryResponse>(ALL_PINS_QUERY, {
-    fetchPolicy: 'cache-and-network',
-  });
+  const { data: pinsData, loading: pinsLoading, error: pinsError, refetch: refetchPins } = useQuery<PinsByProjectQueryResponse>(
+    PINS_BY_PROJECT_QUERY,
+    {
+      variables: { projectId: selectedProjectId || '' },
+      skip: !selectedProjectId,
+      fetchPolicy: 'cache-and-network',
+    }
+  );
 
   const { data: projectsData, loading: projectsLoading, error: projectsError } = useQuery<MyProjectsQueryResponse>(MY_PROJECTS_QUERY, {
     fetchPolicy: 'cache-and-network',
@@ -56,6 +63,10 @@ export const PlantsScreen: React.FC = () => {
     refetchPins();
   };
 
+  const handleSelectProject = () => {
+    router.push('/(tabs)/projects');
+  };
+
   const renderPinItem = ({ item }: { item: Pin }) => (
     <PinListItem
       pin={item}
@@ -64,11 +75,23 @@ export const PlantsScreen: React.FC = () => {
     />
   );
 
+  const renderNoProjectSelected = () => (
+    <View style={styles.noProjectContainer}>
+      <Text style={styles.noProjectTitle}>No Project Selected</Text>
+      <Text style={styles.noProjectSubtitle}>
+        Please select a project to view its plants
+      </Text>
+      <TouchableOpacity style={styles.selectProjectButton} onPress={handleSelectProject}>
+        <Text style={styles.selectProjectButtonText}>Select Project</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyTitle}>No Plants Found</Text>
       <Text style={styles.emptySubtitle}>
-        Start by adding some plants to your projects
+        This project doesn't have any plants yet. Start by adding some plants to your project.
       </Text>
     </View>
   );
@@ -81,6 +104,22 @@ export const PlantsScreen: React.FC = () => {
       </Text>
     </View>
   );
+
+  // If no project is selected, show the no project message
+  if (!selectedProjectId) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Plants</Text>
+          <Text style={styles.headerSubtitle}>Select a project to view plants</Text>
+        </View>
+        {renderNoProjectSelected()}
+      </View>
+    );
+  }
+
+  // Get the selected project name for display
+  const selectedProject = projectsData?.myProjects.find(p => p.id === selectedProjectId);
 
   if (pinsLoading && !pinsData) {
     return (
@@ -97,13 +136,13 @@ export const PlantsScreen: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Plants</Text>
         <Text style={styles.headerSubtitle}>
-          {pinsData?.allPins.length || 0} plants in your collection
+          {selectedProject ? `${pinsData?.pinsByProject.length || 0} plants in "${selectedProject.name}"` : 'Loading project...'}
         </Text>
       </View>
 
       {/* Content */}
       <FlatList
-        data={pinsData?.allPins || []}
+        data={pinsData?.pinsByProject || []}
         renderItem={renderPinItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
@@ -168,6 +207,34 @@ const styles = StyleSheet.create({
     ...typography.textStyles.body,
     color: colors.functional.neutral,
     marginTop: spacing.md,
+  },
+  noProjectContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  noProjectTitle: {
+    ...typography.textStyles.h2,
+    color: colors.functional.darkGray,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  noProjectSubtitle: {
+    ...typography.textStyles.body,
+    color: colors.functional.neutral,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
+  selectProjectButton: {
+    backgroundColor: colors.primary.darkGreen,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: spacing.md,
+  },
+  selectProjectButtonText: {
+    ...typography.textStyles.button,
+    color: colors.background.white,
   },
   emptyContainer: {
     flex: 1,
