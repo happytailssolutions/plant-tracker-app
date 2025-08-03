@@ -25,6 +25,7 @@ import {
   UpdatePinMutationVariables
 } from '../../api/mutations/pinMutations';
 import { uploadImagesToStorage } from '../../api/utils/imageUpload';
+import { generateTagFromName } from '../../utils/tagUtils';
 
 // Types for the form data
 interface PinFormData {
@@ -208,6 +209,10 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
         return;
       }
 
+      // Generate tag from pin name and add it to existing tags
+      const nameTag = generateTagFromName(formData.name);
+      const allTags = nameTag ? [...new Set([...formData.tags, nameTag])] : formData.tags;
+
       // Step 2: Create pin with GraphQL mutation
       const pinInput: CreatePinInput = {
         name: formData.name,
@@ -219,7 +224,7 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
         projectId: formData.projectId,
         isPublic: formData.isPublic,
         metadata: {
-          tags: formData.tags,
+          tags: allTags,
           photos: imageUrls,
         },
       };
@@ -262,6 +267,10 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
 
       setSaveStage('updating');
 
+      // Generate tag from pin name and add it to existing tags
+      const nameTag = generateTagFromName(formData.name);
+      const allTags = nameTag ? [...new Set([...formData.tags, nameTag])] : formData.tags;
+
       // Step 2: Update pin with GraphQL mutation
       const pinInput: UpdatePinInput = {
         id: pinId,
@@ -272,7 +281,7 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
         projectId: formData.projectId,
         isPublic: formData.isPublic,
         metadata: {
-          tags: formData.tags,
+          tags: allTags,
           photos: imageUrls,
         },
       };

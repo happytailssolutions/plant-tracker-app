@@ -17,7 +17,7 @@ import { PinEditorForm } from './PinEditorForm';
 import { ConfirmationDialog } from '../common/ConfirmationDialog';
 import { TagBubbleList, TagInput } from '../common';
 import { useMapStore } from '../../state/mapStore';
-import { getCurrentTags } from '../../utils/tagUtils';
+import { getCurrentTags, generateTagFromName } from '../../utils/tagUtils';
 
 interface PinDetailSheetProps {
   pinId: string | null;
@@ -127,7 +127,15 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
     if (!pinId) return;
     
     const currentTags = getCurrentTagsFromPin();
-    const updatedTags = [...currentTags, newTag];
+    
+    // Generate tag from pin name and add it along with the new tag
+    const nameTag = pin ? generateTagFromName(pin.name) : '';
+    const tagsToAdd = [newTag];
+    if (nameTag && !currentTags.includes(nameTag)) {
+      tagsToAdd.push(nameTag);
+    }
+    
+    const updatedTags = [...currentTags, ...tagsToAdd];
     
     updatePin({
       variables: {
