@@ -197,7 +197,6 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                 {/* Location */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Location</Text>
-                  <Text style={styles.locationText}>{pin.location}</Text>
                   <Text style={styles.coordinatesText}>
                     {pin.latitude.toFixed(6)}, {pin.longitude.toFixed(6)}
                   </Text>
