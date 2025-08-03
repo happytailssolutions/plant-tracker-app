@@ -26,6 +26,9 @@ export const colors = {
   accent: {
     teal: '#00BFA5',    // Primary accent for FAB and critical positive actions
     amber: '#FFC107',   // Warm yellow for warnings and informational tags
+    blue: '#2196F3',    // Blue for informational elements and links
+    blueLight: '#E3F2FD', // Light blue for backgrounds and highlights
+    orange: '#FF9800',  // Orange for preview indicators and warnings
   },
 
   // Functional Colors

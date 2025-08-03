@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
-import { useQuery } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client';
 import { PINS_QUERY, PINS_BY_PROJECT_QUERY, PinsInBoundsQueryResponse, PinsByProjectQueryResponse, MapBounds, Pin } from '../api/queries/pinQueries';
 import { MY_PROJECTS_QUERY, MyProjectsQueryResponse } from '../api/queries/projectQueries';
-import { MapMarker } from '../components/map';
+import { CREATE_PIN_MUTATION, CreatePinMutationResponse, CreatePinMutationVariables } from '../api/mutations/pinMutations';
+import { MapMarker, PreviewPinMarker, PreviewPinControls } from '../components/map';
 import { PinEditorForm, PinDetailSheet } from '../components/pins';
 import { colors, spacing, components } from '../styles/theme';
 import { useMapStore } from '../state/mapStore';
@@ -25,6 +26,7 @@ export const MapScreen: React.FC = () => {
   });
 
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const previewCoordinateTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const mapRef = useRef<MapView>(null);
   
   // Map store state
@@ -32,9 +34,16 @@ export const MapScreen: React.FC = () => {
   const selectedPinId = useMapStore((state) => state.selectedPinId);
   const autoCenterMode = useMapStore((state) => state.autoCenterMode);
   const isCentering = useMapStore((state) => state.isCentering);
+  const previewPinMode = useMapStore((state) => state.previewPinMode);
+  const previewPinCoordinates = useMapStore((state) => state.previewPinCoordinates);
+  const lastUsedPinType = useMapStore((state) => state.lastUsedPinType);
   const setSelectedPin = useMapStore((state) => state.setSelectedPin);
   const setAutoCenterMode = useMapStore((state) => state.setAutoCenterMode);
   const setCentering = useMapStore((state) => state.setCentering);
+  const enterPreviewMode = useMapStore((state) => state.enterPreviewMode);
+  const exitPreviewMode = useMapStore((state) => state.exitPreviewMode);
+  const setPreviewPinCoordinates = useMapStore((state) => state.setPreviewPinCoordinates);
+  const setLastUsedPinType = useMapStore((state) => state.setLastUsedPinType);
   
   // Location hook
   const { getCurrentLocation, loading: locationLoading } = useLocation();
@@ -66,6 +75,20 @@ export const MapScreen: React.FC = () => {
     }
   );
 
+  // GraphQL mutation for creating pins
+  const [createPin] = useMutation<CreatePinMutationResponse, CreatePinMutationVariables>(
+    CREATE_PIN_MUTATION,
+    {
+      onCompleted: () => {
+        // Refetch pins after creation
+        refetch();
+      },
+      onError: (error) => {
+        Alert.alert('Error', `Failed to create pin: ${error.message}`);
+      },
+    }
+  );
+
   // Debounced function to update map bounds and fetch pins
   const debouncedFetchPins = useCallback((newRegion: Region) => {
     if (debounceTimeoutRef.current) {
@@ -88,12 +111,28 @@ export const MapScreen: React.FC = () => {
   const handleRegionChangeComplete = useCallback((newRegion: Region) => {
     setRegion(newRegion);
     debouncedFetchPins(newRegion);
-  }, [debouncedFetchPins]);
+    
+    // Update preview pin coordinates if in preview mode (debounced)
+    if (previewPinMode) {
+      if (previewCoordinateTimeoutRef.current) {
+        clearTimeout(previewCoordinateTimeoutRef.current);
+      }
+      
+      previewCoordinateTimeoutRef.current = setTimeout(() => {
+        setPreviewPinCoordinates({
+          latitude: newRegion.latitude,
+          longitude: newRegion.longitude,
+        });
+      }, 100); // Shorter debounce for preview updates
+    }
+  }, [debouncedFetchPins, previewPinMode, setPreviewPinCoordinates]);
 
   // Handle marker press
   const handleMarkerPress = useCallback((pin: Pin) => {
+    // Disable pin selection during preview mode
+    if (previewPinMode) return;
     setSelectedPin(pin.id);
-  }, [setSelectedPin]);
+  }, [setSelectedPin, previewPinMode]);
 
   // Handle FAB press to create new pin
   const handleCreatePin = useCallback(() => {
@@ -105,8 +144,63 @@ export const MapScreen: React.FC = () => {
       );
       return;
     }
+    
+    // Enter preview mode with current map center coordinates
+    enterPreviewMode({
+      latitude: region.latitude,
+      longitude: region.longitude,
+    });
+  }, [projectsData, region, enterPreviewMode]);
+
+  // Handle preview pin confirmation
+  const handlePreviewPinConfirm = useCallback((coordinates: { latitude: number; longitude: number }, pinType: string) => {
+    setLastUsedPinType(pinType);
+    exitPreviewMode();
     setIsPinEditorVisible(true);
-  }, [projectsData]);
+  }, [setLastUsedPinType, exitPreviewMode]);
+
+  // Handle quick add pin
+  const handleQuickAddPin = useCallback(async (coordinates: { latitude: number; longitude: number }, pinType: string) => {
+    if (!projectsData?.myProjects || projectsData.myProjects.length === 0) {
+      Alert.alert('No Projects', 'You need to create a project first before adding pins.');
+      return;
+    }
+
+    // Use the first project for quick add
+    const projectId = projectsData.myProjects[0].id;
+    
+    try {
+      // Create pin with minimal data
+      const pinData = {
+        name: `New ${pinType}`,
+        description: `Quickly added ${pinType}`,
+        pinType,
+        status: 'active',
+        projectId,
+        tags: [],
+        photos: [],
+        isPublic: false,
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+      };
+
+      // Call the create pin mutation
+      await createPin({
+        variables: pinData,
+      });
+
+      Alert.alert('Success', `Quickly added ${pinType} at the selected location!`);
+      setLastUsedPinType(pinType);
+      exitPreviewMode();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create pin. Please try again.');
+    }
+  }, [projectsData, setLastUsedPinType, exitPreviewMode, createPin]);
+
+  // Handle preview pin cancel
+  const handlePreviewPinCancel = useCallback(() => {
+    exitPreviewMode();
+  }, [exitPreviewMode]);
 
   // Handle pin editor close
   const handlePinEditorClose = useCallback(() => {
@@ -174,11 +268,14 @@ export const MapScreen: React.FC = () => {
     }
   }, [isCentering, autoCenterMode, projectPinsData, centerMapOnProjectPins, centerMapOnUserLocation]);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
+      }
+      if (previewCoordinateTimeoutRef.current) {
+        clearTimeout(previewCoordinateTimeoutRef.current);
       }
     };
   }, []);
@@ -216,6 +313,14 @@ export const MapScreen: React.FC = () => {
         style={styles.map}
         region={region}
         onRegionChangeComplete={handleRegionChangeComplete}
+        onPress={previewPinMode ? (event) => {
+          // Tap to place preview pin
+          const { coordinate } = event.nativeEvent;
+          setPreviewPinCoordinates({
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+          });
+        } : undefined}
         showsUserLocation={true}
         showsMyLocationButton={true}
         showsCompass={true}
@@ -229,6 +334,14 @@ export const MapScreen: React.FC = () => {
             onPress={handleMarkerPress}
           />
         ))}
+        
+        {/* Preview Pin Marker */}
+        {previewPinMode && previewPinCoordinates && (
+          <PreviewPinMarker
+            coordinates={previewPinCoordinates}
+            pinType={lastUsedPinType}
+          />
+        )}
       </MapView>
 
       {/* Loading indicator */}
@@ -261,14 +374,26 @@ export const MapScreen: React.FC = () => {
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
+      {/* Preview Pin Controls */}
+      {previewPinMode && previewPinCoordinates && (
+        <PreviewPinControls
+          coordinates={previewPinCoordinates}
+          onConfirm={handlePreviewPinConfirm}
+          onQuickAdd={handleQuickAddPin}
+          onCancel={handlePreviewPinCancel}
+          initialPinType={lastUsedPinType}
+        />
+      )}
+
       {/* Pin Editor Modal */}
       <PinEditorForm
         visible={isPinEditorVisible}
         onClose={handlePinEditorClose}
         projects={projectsData?.myProjects || []}
         mode="create"
-        latitude={region.latitude}
-        longitude={region.longitude}
+        latitude={previewPinCoordinates?.latitude || region.latitude}
+        longitude={previewPinCoordinates?.longitude || region.longitude}
+        initialData={previewPinCoordinates ? { pinType: lastUsedPinType } : undefined}
       />
 
       {/* Pin Detail Sheet */}

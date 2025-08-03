@@ -3,6 +3,11 @@ import { Region } from 'react-native-maps';
 
 type AutoCenterMode = 'project-pins' | 'user-location' | null;
 
+interface PreviewPinCoordinates {
+  latitude: number;
+  longitude: number;
+}
+
 interface MapState {
   // State
   selectedProjectId: string | null;
@@ -10,6 +15,11 @@ interface MapState {
   region: Region | null;
   autoCenterMode: AutoCenterMode;
   isCentering: boolean;
+  
+  // Preview Pin State
+  previewPinMode: boolean;
+  previewPinCoordinates: PreviewPinCoordinates | null;
+  lastUsedPinType: string;
   
   // Actions
   setSelectedProject: (projectId: string | null) => void;
@@ -20,6 +30,13 @@ interface MapState {
   setProjectAndNavigate: (projectId: string) => void;
   clearSelection: () => void;
   resetMapState: () => void;
+  
+  // Preview Pin Actions
+  setPreviewPinMode: (active: boolean) => void;
+  setPreviewPinCoordinates: (coordinates: PreviewPinCoordinates) => void;
+  setLastUsedPinType: (pinType: string) => void;
+  enterPreviewMode: (coordinates: PreviewPinCoordinates) => void;
+  exitPreviewMode: () => void;
 }
 
 export const useMapStore = create<MapState>((set) => ({
@@ -29,6 +46,11 @@ export const useMapStore = create<MapState>((set) => ({
   region: null,
   autoCenterMode: null,
   isCentering: false,
+  
+  // Preview Pin Initial State
+  previewPinMode: false,
+  previewPinCoordinates: null,
+  lastUsedPinType: 'plant',
   
   // Actions
   setSelectedProject: (projectId: string | null) => 
@@ -67,5 +89,31 @@ export const useMapStore = create<MapState>((set) => ({
       region: null,
       autoCenterMode: null,
       isCentering: false,
+      previewPinMode: false,
+      previewPinCoordinates: null,
+      lastUsedPinType: 'plant',
+    }),
+    
+  // Preview Pin Actions
+  setPreviewPinMode: (active: boolean) => 
+    set({ previewPinMode: active }),
+    
+  setPreviewPinCoordinates: (coordinates: PreviewPinCoordinates) => 
+    set({ previewPinCoordinates: coordinates }),
+    
+  setLastUsedPinType: (pinType: string) => 
+    set({ lastUsedPinType: pinType }),
+    
+  enterPreviewMode: (coordinates: PreviewPinCoordinates) => 
+    set({ 
+      previewPinMode: true, 
+      previewPinCoordinates: coordinates,
+      selectedPinId: null, // Clear any selected pin
+    }),
+    
+  exitPreviewMode: () => 
+    set({ 
+      previewPinMode: false, 
+      previewPinCoordinates: null 
     }),
 })); 
