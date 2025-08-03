@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from '@apollo/client';
 import { colors, typography, spacing, components } from '../../styles/theme';
-import { ImagePicker } from '../common/ImagePicker';
+import { ImagePicker, Dropdown } from '../common';
 import { 
   CREATE_PIN_MUTATION, 
   UPDATE_PIN_MUTATION,
@@ -405,41 +405,32 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
             </View>
 
             {/* Project Selection */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Project *</Text>
-              <View style={[styles.pickerContainer, errors.projectId && styles.inputError]}>
-                <Text style={styles.pickerText}>
-                  {formData.projectId 
-                    ? projects.find(p => p.id === formData.projectId)?.name || 'Select Project'
-                    : 'Select Project'
-                  }
-                </Text>
-                <Ionicons name="chevron-down" size={20} color={colors.functional.neutral} />
-              </View>
-              {errors.projectId && <Text style={styles.errorText}>{errors.projectId}</Text>}
-            </View>
+            <Dropdown
+              label="Project *"
+              value={formData.projectId}
+              options={projects.map(project => ({ value: project.id, label: project.name }))}
+              onValueChange={(value) => updateField('projectId', value)}
+              placeholder="Select Project"
+              error={errors.projectId}
+            />
 
             {/* Pin Type */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Pin Type</Text>
-              <View style={styles.pickerContainer}>
-                <Text style={styles.pickerText}>
-                  {pinTypes.find(t => t.value === formData.pinType)?.label || 'Plant'}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color={colors.functional.neutral} />
-              </View>
-            </View>
+            <Dropdown
+              label="Pin Type"
+              value={formData.pinType}
+              options={pinTypes}
+              onValueChange={(value) => updateField('pinType', value)}
+              placeholder="Select Pin Type"
+            />
 
             {/* Status */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Status</Text>
-              <View style={styles.pickerContainer}>
-                <Text style={styles.pickerText}>
-                  {statusOptions.find(s => s.value === formData.status)?.label || 'Active'}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color={colors.functional.neutral} />
-              </View>
-            </View>
+            <Dropdown
+              label="Status"
+              value={formData.status}
+              options={statusOptions}
+              onValueChange={(value) => updateField('status', value)}
+              placeholder="Select Status"
+            />
 
             {/* Tags */}
             <View style={styles.fieldContainer}>
@@ -592,17 +583,6 @@ const styles = StyleSheet.create({
     ...typography.textStyles.caption,
     color: colors.functional.error,
     marginTop: spacing.xs,
-  },
-  pickerContainer: {
-    ...components.input,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  pickerText: {
-    ...typography.textStyles.body,
-    color: colors.functional.darkGray,
-    flex: 1,
   },
   tagInputContainer: {
     flexDirection: 'row',
