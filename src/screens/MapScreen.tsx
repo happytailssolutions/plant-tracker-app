@@ -359,7 +359,7 @@ export const MapScreen: React.FC = () => {
   }, [error]);
 
   const handleSelectProject = () => {
-    router.push('/(tabs)/projects');
+    router.push('/(tabs)/');
   };
 
   const renderNoProjectSelected = () => (

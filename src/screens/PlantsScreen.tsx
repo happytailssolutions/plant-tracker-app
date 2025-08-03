@@ -64,7 +64,7 @@ export const PlantsScreen: React.FC = () => {
   };
 
   const handleSelectProject = () => {
-    router.push('/(tabs)/projects');
+    router.push('/(tabs)/');
   };
 
   const renderPinItem = ({ item }: { item: Pin }) => (
