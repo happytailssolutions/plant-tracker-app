@@ -182,20 +182,38 @@ export const MapScreen: React.FC = () => {
         longitude: coordinates.longitude,
       };
 
+      console.log('Creating quick add pin with data:', pinData);
+
       // Call the create pin mutation
-      await createPin({
+      const result = await createPin({
         variables: {
           input: pinData,
         },
       });
 
+      console.log('Quick add pin created successfully:', result);
+
+      // Small delay to ensure database transaction is complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Explicitly refetch pins to ensure the new pin appears on the map
+      await refetch({
+        mapBounds: {
+          ...mapBounds,
+          projectId: selectedProjectId,
+        },
+      });
+
+      console.log('Refetched pins after quick add');
+
       Alert.alert('Success', `Quickly added ${pinType} at the selected location!`);
       setLastUsedPinType(pinType);
       exitPreviewMode();
     } catch (error) {
+      console.error('Quick add pin error:', error);
       Alert.alert('Error', 'Failed to create pin. Please try again.');
     }
-  }, [projectsData, setLastUsedPinType, exitPreviewMode, createPin]);
+  }, [projectsData, setLastUsedPinType, exitPreviewMode, createPin, refetch, mapBounds, selectedProjectId]);
 
   // Handle preview pin cancel
   const handlePreviewPinCancel = useCallback(() => {
