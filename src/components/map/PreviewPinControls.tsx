@@ -126,13 +126,11 @@ export const PreviewPinControls: React.FC<PreviewPinControlsProps> = ({
       <View style={styles.pinTypeContainer}>
         <Text style={styles.pinTypeLabel}>Pin Type:</Text>
         <Dropdown
-          data={PIN_TYPES}
+          label="Pin Type"
+          options={PIN_TYPES}
           value={selectedPinType}
           onValueChange={setSelectedPinType}
           placeholder="Select pin type"
-          style={styles.pinTypeDropdown}
-          accessibilityLabel="Select pin type"
-          accessibilityHint="Choose the type of pin you want to create"
         />
       </View>
 
