@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useQuery } from '@apollo/client';
+import { router } from 'expo-router';
 import { colors, typography, spacing, components } from '../styles/theme';
 import { MY_PROJECTS_QUERY, MyProjectsQueryResponse, Project } from '../api/queries/projectQueries';
 import { ProjectListItem } from '../components/projects';
 import { CreateProjectModal } from '../components/common';
+import { useMapStore } from '../state/mapStore';
 
 export const ProjectsScreen: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const setProjectAndNavigate = useMapStore((state) => state.setProjectAndNavigate);
   
   const { data, loading, error, refetch } = useQuery<MyProjectsQueryResponse>(MY_PROJECTS_QUERY, {
     fetchPolicy: 'cache-and-network',
   });
 
   const handleProjectPress = (project: Project) => {
-    // TODO: Navigate to project detail screen
-    console.log('Project pressed:', project.id);
+    // Set the project in the map store and navigate to explore (map) tab
+    setProjectAndNavigate(project.id);
+    router.push('/(tabs)/explore');
   };
 
   const handleRefresh = () => {

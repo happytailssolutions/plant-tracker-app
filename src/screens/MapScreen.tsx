@@ -2,26 +2,21 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import { useQuery } from '@apollo/client';
-import { PINS_QUERY, PinsInBoundsQueryResponse, MapBounds, Pin } from '../api/queries/pinQueries';
+import { PINS_QUERY, PINS_BY_PROJECT_QUERY, PinsInBoundsQueryResponse, PinsByProjectQueryResponse, MapBounds, Pin } from '../api/queries/pinQueries';
 import { MY_PROJECTS_QUERY, MyProjectsQueryResponse } from '../api/queries/projectQueries';
 import { MapMarker } from '../components/map';
 import { PinEditorForm, PinDetailSheet } from '../components/pins';
 import { colors, spacing, components } from '../styles/theme';
 import { useMapStore } from '../state/mapStore';
+import { useLocation } from '../hooks/useLocation';
+import { calculateBoundsFromPins, createRegionFromCoordinates, validateRegion, DEFAULT_REGION } from '../utils/mapUtils';
 
 // Debounce delay for map region changes (in milliseconds)
 const DEBOUNCE_DELAY = 500;
 
 export const MapScreen: React.FC = () => {
-  const [region, setRegion] = useState<Region>({
-    latitude: 37.78825,
-    longitude: -122.4324,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
-
+  const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [isPinEditorVisible, setIsPinEditorVisible] = useState(false);
-
   const [mapBounds, setMapBounds] = useState<MapBounds>({
     north: region.latitude + region.latitudeDelta / 2,
     south: region.latitude - region.latitudeDelta / 2,
@@ -30,9 +25,19 @@ export const MapScreen: React.FC = () => {
   });
 
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const mapRef = useRef<MapView>(null);
+  
+  // Map store state
   const selectedProjectId = useMapStore((state) => state.selectedProjectId);
   const selectedPinId = useMapStore((state) => state.selectedPinId);
+  const autoCenterMode = useMapStore((state) => state.autoCenterMode);
+  const isCentering = useMapStore((state) => state.isCentering);
   const setSelectedPin = useMapStore((state) => state.setSelectedPin);
+  const setAutoCenterMode = useMapStore((state) => state.setAutoCenterMode);
+  const setCentering = useMapStore((state) => state.setCentering);
+  
+  // Location hook
+  const { getCurrentLocation, loading: locationLoading } = useLocation();
 
   // GraphQL query for fetching user's projects
   const { data: projectsData } = useQuery<MyProjectsQueryResponse>(MY_PROJECTS_QUERY);
@@ -47,6 +52,16 @@ export const MapScreen: React.FC = () => {
           projectId: selectedProjectId,
         },
       },
+      fetchPolicy: 'cache-and-network',
+    }
+  );
+
+  // GraphQL query for fetching all pins of the selected project (for centering)
+  const { data: projectPinsData, loading: projectPinsLoading } = useQuery<PinsByProjectQueryResponse>(
+    PINS_BY_PROJECT_QUERY,
+    {
+      variables: { projectId: selectedProjectId! },
+      skip: !selectedProjectId || autoCenterMode !== 'project-pins',
       fetchPolicy: 'cache-and-network',
     }
   );
@@ -103,6 +118,62 @@ export const MapScreen: React.FC = () => {
     setSelectedPin(null);
   }, [setSelectedPin]);
 
+  // Center map on project pins
+  const centerMapOnProjectPins = useCallback(async (pins: Pin[]) => {
+    if (!mapRef.current || pins.length === 0) {
+      // No pins, center on user location
+      setAutoCenterMode('user-location');
+      return;
+    }
+
+    const newRegion = calculateBoundsFromPins(pins);
+    
+    if (validateRegion(newRegion)) {
+      setRegion(newRegion);
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(newRegion, 1000);
+      }
+    }
+    
+    setCentering(false);
+    setAutoCenterMode(null);
+  }, [setAutoCenterMode, setCentering]);
+
+  // Center map on user location
+  const centerMapOnUserLocation = useCallback(async () => {
+    const location = await getCurrentLocation();
+    
+    if (location) {
+      const newRegion = createRegionFromCoordinates(location.latitude, location.longitude);
+      setRegion(newRegion);
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(newRegion, 1000);
+      }
+    } else {
+      // Fallback to default region
+      setRegion(DEFAULT_REGION);
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(DEFAULT_REGION, 1000);
+      }
+    }
+    
+    setCentering(false);
+    setAutoCenterMode(null);
+  }, [getCurrentLocation, setCentering, setAutoCenterMode]);
+
+  // Handle auto-centering based on mode
+  useEffect(() => {
+    if (!isCentering || !autoCenterMode) return;
+
+    if (autoCenterMode === 'project-pins') {
+      if (projectPinsData?.pinsByProject) {
+        centerMapOnProjectPins(projectPinsData.pinsByProject);
+      }
+    } else if (autoCenterMode === 'user-location') {
+      centerMapOnUserLocation();
+    }
+  }, [isCentering, autoCenterMode, projectPinsData, centerMapOnProjectPins, centerMapOnUserLocation]);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -141,6 +212,7 @@ export const MapScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <MapView
+        ref={mapRef}
         style={styles.map}
         region={region}
         onRegionChangeComplete={handleRegionChangeComplete}
@@ -160,9 +232,14 @@ export const MapScreen: React.FC = () => {
       </MapView>
 
       {/* Loading indicator */}
-      {loading && (
+      {(loading || isCentering || locationLoading) && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary.darkGreen} />
+          {isCentering && (
+            <Text style={styles.loadingText}>
+              {autoCenterMode === 'project-pins' ? 'Centering on project pins...' : 'Getting your location...'}
+            </Text>
+          )}
         </View>
       )}
 
@@ -235,6 +312,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: colors.functional.darkGray,
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: spacing.xs,
+    textAlign: 'center',
   },
   pinCountContainer: {
     position: 'absolute',
