@@ -1,5 +1,37 @@
 import { gql } from '@apollo/client';
 
+// Query to get all pins for the current user
+export const ALL_PINS_QUERY = gql`
+  query AllPins {
+    allPins {
+      id
+      name
+      description
+      latitude
+      longitude
+      location
+      pinType
+      status
+      isPublic
+      isActive
+      metadata
+      createdAt
+      updatedAt
+      projectId
+      createdBy {
+        id
+        name
+        email
+      }
+      project {
+        id
+        name
+        description
+      }
+    }
+  }
+`;
+
 // Query to get pins within map bounds
 export const PINS_QUERY = gql`
   query PinsInBounds($mapBounds: MapBoundsInput!) {
@@ -95,6 +127,11 @@ export const PINS_BY_PROJECT_QUERY = gql`
     }
   }
 `;
+
+// Type for the AllPins query response
+export interface AllPinsQueryResponse {
+  allPins: Pin[];
+}
 
 // Type for the PinsInBounds query response
 export interface PinsInBoundsQueryResponse {

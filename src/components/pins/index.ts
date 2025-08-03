@@ -1,2 +1,3 @@
 export { default as PinEditorForm } from './PinEditorForm';
-export { PinDetailSheet } from './PinDetailSheet'; 
+export { PinDetailSheet } from './PinDetailSheet';
+export { PinListItem } from './PinListItem'; 

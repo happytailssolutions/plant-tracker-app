@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Region } from 'react-native-maps';
 
 type AutoCenterMode = 'project-pins' | 'user-location' | null;
+type MapType = 'standard' | 'satellite' | 'hybrid' | 'terrain';
 
 interface PreviewPinCoordinates {
   latitude: number;
@@ -16,6 +17,7 @@ interface MapState {
   region: Region | null;
   autoCenterMode: AutoCenterMode;
   isCentering: boolean;
+  mapType: MapType;
   
   // Tag Selection Modal State
   isTagSelectionOpen: boolean;
@@ -35,6 +37,7 @@ interface MapState {
   setRegion: (region: Region) => void;
   setAutoCenterMode: (mode: AutoCenterMode) => void;
   setCentering: (isCentering: boolean) => void;
+  setMapType: (mapType: MapType) => void;
   setProjectAndNavigate: (projectId: string) => void;
   setTagAndNavigate: (tag: string) => void;
   clearSelection: () => void;
@@ -61,6 +64,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   region: null,
   autoCenterMode: null,
   isCentering: false,
+  mapType: 'satellite',
   
   // Tag Selection Modal Initial State
   isTagSelectionOpen: false,
@@ -102,6 +106,9 @@ export const useMapStore = create<MapState>((set, get) => ({
   setCentering: (isCentering: boolean) => 
     set({ isCentering }),
     
+  setMapType: (mapType: MapType) => 
+    set({ mapType }),
+    
   setProjectAndNavigate: (projectId: string) => 
     set({ 
       selectedProjectId: projectId,
@@ -134,6 +141,7 @@ export const useMapStore = create<MapState>((set, get) => ({
       region: null,
       autoCenterMode: null,
       isCentering: false,
+      mapType: 'satellite',
       isTagSelectionOpen: false,
       availableTags: [],
       previewPinMode: false,

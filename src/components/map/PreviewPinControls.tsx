@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, components } from '../../styles/theme';
 import { Dropdown } from '../common';
 import { getLocationDescription, formatCoordinates } from '../../utils/geocoding';
+import { logApiKeyDiagnostics } from '../../utils/apiKeyChecker';
 import Constants from 'expo-constants';
 
 interface PreviewPinCoordinates {
@@ -80,13 +81,11 @@ export const PreviewPinControls: React.FC<PreviewPinControlsProps> = ({
       try {
         const googleMapsApiKey = Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
         
-        // Debug logging
-        console.log('=== Google Maps API Key Debug ===');
-        console.log('Constants.expoConfig?.extra:', Constants.expoConfig?.extra);
-        console.log('Google Maps API Key loaded:', googleMapsApiKey ? 'YES' : 'NO');
-        console.log('API Key length:', googleMapsApiKey?.length || 0);
-        console.log('API Key starts with:', googleMapsApiKey?.substring(0, 10) || 'N/A');
-        console.log('================================');
+        // Run diagnostics if geocoding fails
+        if (!googleMapsApiKey) {
+          console.warn('No Google Maps API key found for geocoding');
+          logApiKeyDiagnostics();
+        }
         
         const description = await getLocationDescription(
           coordinates.latitude, 
@@ -96,6 +95,8 @@ export const PreviewPinControls: React.FC<PreviewPinControlsProps> = ({
         setLocationDescription(description);
       } catch (error) {
         console.error('Failed to load location description:', error);
+        console.log('Running API key diagnostics...');
+        logApiKeyDiagnostics();
         setLocationDescription(formatCoordinates(coordinates.latitude, coordinates.longitude));
       } finally {
         setIsLoadingLocation(false);
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   pinTypeDropdown: {
-    borderColor: colors.functional.lightGray,
+    borderColor: colors.functional.neutral,
     borderWidth: 1,
     borderRadius: spacing.sm,
   },
@@ -308,7 +309,7 @@ const styles = StyleSheet.create({
   cancelButton: {
     backgroundColor: colors.background.light,
     borderWidth: 1,
-    borderColor: colors.functional.lightGray,
+    borderColor: colors.functional.neutral,
   },
   quickAddButton: {
     backgroundColor: colors.accent.amber,

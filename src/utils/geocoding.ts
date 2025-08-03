@@ -35,8 +35,24 @@ export const reverseGeocode = async (
     const response = await fetch(url);
     const data = await response.json();
 
+    // Handle different API response statuses
+    if (data.status === 'REQUEST_DENIED') {
+      console.warn('Geocoding API access denied. Check API key restrictions:', data.error_message);
+      return null;
+    }
+    
+    if (data.status === 'OVER_QUERY_LIMIT') {
+      console.warn('Geocoding API quota exceeded');
+      return null;
+    }
+    
+    if (data.status === 'ZERO_RESULTS') {
+      console.warn('No geocoding results found for coordinates');
+      return null;
+    }
+
     if (data.status !== 'OK' || !data.results || data.results.length === 0) {
-      console.warn('Geocoding failed:', data.status);
+      console.warn('Geocoding failed:', data.status, data.error_message);
       return null;
     }
 
@@ -107,14 +123,26 @@ export const getLocationDescription = async (
   console.log('API Key length:', apiKey?.length || 0);
   console.log('API Key starts with:', apiKey?.substring(0, 10) || 'N/A');
   
-  const geocodeResult = await reverseGeocode(latitude, longitude, apiKey);
+  // Check if API key is available
+  if (!apiKey) {
+    console.warn('No Google Maps API key available for geocoding');
+    return formatCoordinates(latitude, longitude);
+  }
   
-  if (geocodeResult) {
-    if (geocodeResult.address) {
-      return `${geocodeResult.address}, ${geocodeResult.city}`;
-    } else if (geocodeResult.city) {
-      return geocodeResult.city;
+  try {
+    const geocodeResult = await reverseGeocode(latitude, longitude, apiKey);
+    
+    if (geocodeResult) {
+      if (geocodeResult.address && geocodeResult.city) {
+        return `${geocodeResult.address}, ${geocodeResult.city}`;
+      } else if (geocodeResult.city) {
+        return geocodeResult.city;
+      } else if (geocodeResult.fullAddress) {
+        return geocodeResult.fullAddress;
+      }
     }
+  } catch (error) {
+    console.warn('Geocoding failed, using coordinate fallback:', error);
   }
   
   // Fallback to coordinates

@@ -5,7 +5,7 @@ import { useQuery, useMutation } from '@apollo/client';
 import { PINS_QUERY, PINS_BY_PROJECT_QUERY, PinsInBoundsQueryResponse, PinsByProjectQueryResponse, MapBounds, Pin } from '../api/queries/pinQueries';
 import { MY_PROJECTS_QUERY, MyProjectsQueryResponse } from '../api/queries/projectQueries';
 import { CREATE_PIN_MUTATION, CreatePinMutationResponse, CreatePinMutationVariables } from '../api/mutations/pinMutations';
-import { MapMarker, PreviewPinMarker, PreviewPinControls } from '../components/map';
+import { MapMarker, PreviewPinMarker, PreviewPinControls, LayerSwitcher } from '../components/map';
 import { PinEditorForm, PinDetailSheet } from '../components/pins';
 import { TagBubble, TagSelectionModal } from '../components/common';
 import { colors, spacing, components } from '../styles/theme';
@@ -55,6 +55,8 @@ export const MapScreen: React.FC = () => {
   const openTagSelection = useMapStore((state) => state.openTagSelection);
   const closeTagSelection = useMapStore((state) => state.closeTagSelection);
   const setAvailableTags = useMapStore((state) => state.setAvailableTags);
+  const mapType = useMapStore((state) => state.mapType);
+  const setMapType = useMapStore((state) => state.setMapType);
   
   // Location hook
   const { getCurrentLocation, loading: locationLoading } = useLocation();
@@ -374,7 +376,7 @@ export const MapScreen: React.FC = () => {
         showsMyLocationButton={true}
         showsCompass={true}
         showsScale={true}
-        mapType="standard"
+        mapType={mapType}
       >
         {pins.map((pin) => (
           <MapMarker
@@ -447,6 +449,12 @@ export const MapScreen: React.FC = () => {
           </View>
         </View>
       )}
+
+      {/* Layer Switcher */}
+      <LayerSwitcher
+        currentMapType={mapType}
+        onMapTypeChange={setMapType}
+      />
 
       {/* Floating Action Button */}
       <TouchableOpacity
