@@ -1,6 +1,5 @@
-import React from 'react';
-import { PlantsScreen } from '../../src/screens/PlantsScreen';
+import { Redirect } from 'expo-router';
 
 export default function HomeScreen() {
-  return <PlantsScreen />;
+  return <Redirect href="/(tabs)/projects" />;
 }
