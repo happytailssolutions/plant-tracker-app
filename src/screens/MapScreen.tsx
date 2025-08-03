@@ -177,8 +177,6 @@ export const MapScreen: React.FC = () => {
         pinType,
         status: 'active',
         projectId,
-        tags: [],
-        photos: [],
         isPublic: false,
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
@@ -186,7 +184,9 @@ export const MapScreen: React.FC = () => {
 
       // Call the create pin mutation
       await createPin({
-        variables: pinData,
+        variables: {
+          input: pinData,
+        },
       });
 
       Alert.alert('Success', `Quickly added ${pinType} at the selected location!`);
