@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from '@apollo/client';
 import { colors, typography, spacing, components } from '../../styles/theme';
-import { ImagePicker, Dropdown } from '../common';
+import { ImagePicker, Dropdown, DatePicker } from '../common';
 import { 
   CREATE_PIN_MUTATION, 
   UPDATE_PIN_MUTATION,
@@ -27,6 +27,27 @@ import {
 import { uploadImagesToStorage } from '../../api/utils/imageUpload';
 import { generateTagFromName } from '../../utils/tagUtils';
 
+// Constants for field options
+const PIN_TYPE_OPTIONS = [
+  { label: 'Tree', value: 'Tree' },
+  { label: 'Flower', value: 'Flower' },
+  { label: 'Vine', value: 'Vine' },
+  { label: 'Bush', value: 'Bush' },
+  { label: 'Other', value: 'Other' },
+];
+
+const STATUS_OPTIONS = [
+  { label: 'Growing', value: 'Growing' },
+  { label: 'Flowering', value: 'Flowering' },
+  { label: 'Fruiting', value: 'Fruiting' },
+  { label: 'Seedling', value: 'Seedling' },
+];
+
+const ORIGIN_OPTIONS = [
+  { label: 'Seed', value: 'seed' },
+  { label: 'Grafting', value: 'grafting' },
+];
+
 // Types for the form data
 interface PinFormData {
   name: string;
@@ -37,6 +58,18 @@ interface PinFormData {
   tags: string[];
   photos: string[];
   isPublic: boolean;
+  // New fields
+  plantingDate?: string;
+  fertilizedDate?: string;
+  pruningDate?: string;
+  origin?: 'seed' | 'grafting';
+  notes?: {
+    entries: Array<{
+      text: string;
+      timestamp: string;
+      userId?: string;
+    }>;
+  };
 }
 
 interface Project {
@@ -73,12 +106,20 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
   const [formData, setFormData] = useState<PinFormData>({
     name: '',
     description: '',
-    pinType: 'plant',
-    status: 'active',
+    pinType: 'Tree',
+    status: 'Growing',
     projectId: '',
     tags: [],
     photos: [],
     isPublic: false,
+    // New fields with defaults
+    plantingDate: undefined,
+    fertilizedDate: undefined,
+    pruningDate: undefined,
+    origin: undefined,
+    notes: {
+      entries: [],
+    },
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -138,12 +179,20 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
       setFormData({
         name: '',
         description: '',
-        pinType: 'plant',
-        status: 'active',
+        pinType: 'Tree',
+        status: 'Growing',
         projectId: projects.length > 0 ? projects[0].id : '',
         tags: [],
         photos: [],
         isPublic: false,
+        // Reset new fields
+        plantingDate: undefined,
+        fertilizedDate: undefined,
+        pruningDate: undefined,
+        origin: undefined,
+        notes: {
+          entries: [],
+        },
       });
     }
     setErrors({});
@@ -226,6 +275,11 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
         metadata: {
           tags: allTags,
           photos: imageUrls,
+          plantingDate: formData.plantingDate,
+          fertilizedDate: formData.fertilizedDate,
+          pruningDate: formData.pruningDate,
+          origin: formData.origin,
+          notes: formData.notes,
         },
       };
 
@@ -283,6 +337,11 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
         metadata: {
           tags: allTags,
           photos: imageUrls,
+          plantingDate: formData.plantingDate,
+          fertilizedDate: formData.fertilizedDate,
+          pruningDate: formData.pruningDate,
+          origin: formData.origin,
+          notes: formData.notes,
         },
       };
 
@@ -302,12 +361,20 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
     setFormData({
       name: '',
       description: '',
-      pinType: 'plant',
-      status: 'active',
+      pinType: 'Tree',
+      status: 'Growing',
       projectId: '',
       tags: [],
       photos: [],
       isPublic: false,
+      // Reset new fields
+      plantingDate: undefined,
+      fertilizedDate: undefined,
+      pruningDate: undefined,
+      origin: undefined,
+      notes: {
+        entries: [],
+      },
     });
     setErrors({});
     setTagInput('');
@@ -338,21 +405,9 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
     addTag();
   };
 
-  const pinTypes = [
-    { value: 'plant', label: 'Plant' },
-    { value: 'tree', label: 'Tree' },
-    { value: 'flower', label: 'Flower' },
-    { value: 'shrub', label: 'Shrub' },
-    { value: 'herb', label: 'Herb' },
-    { value: 'other', label: 'Other' },
-  ];
-
-  const statusOptions = [
-    { value: 'active', label: 'Active' },
-    { value: 'dormant', label: 'Dormant' },
-    { value: 'harvested', label: 'Harvested' },
-    { value: 'removed', label: 'Removed' },
-  ];
+  // Use the new constants
+  const pinTypes = PIN_TYPE_OPTIONS;
+  const statusOptions = STATUS_OPTIONS;
 
   return (
     <Modal
@@ -447,6 +502,44 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
               options={statusOptions}
               onValueChange={(value) => updateField('status', value)}
               placeholder="Select Status"
+            />
+
+            {/* Plant Details Section */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Plant Details</Text>
+            </View>
+
+            {/* Planting Date */}
+            <DatePicker
+              value={formData.plantingDate}
+              onChange={(date) => updateField('plantingDate', date)}
+              placeholder="Select planting date"
+              label="Planting Date"
+            />
+
+            {/* Fertilized Date */}
+            <DatePicker
+              value={formData.fertilizedDate}
+              onChange={(date) => updateField('fertilizedDate', date)}
+              placeholder="Select fertilized date"
+              label="Fertilized Date"
+            />
+
+            {/* Pruning Date */}
+            <DatePicker
+              value={formData.pruningDate}
+              onChange={(date) => updateField('pruningDate', date)}
+              placeholder="Select pruning date"
+              label="Pruning Date"
+            />
+
+            {/* Origin */}
+            <Dropdown
+              label="Origin"
+              value={formData.origin}
+              options={ORIGIN_OPTIONS}
+              onValueChange={(value) => updateField('origin', value)}
+              placeholder="Select origin"
             />
 
             {/* Tags */}
@@ -578,6 +671,18 @@ const styles = StyleSheet.create({
   },
   fieldContainer: {
     marginBottom: spacing.lg,
+  },
+  sectionHeader: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.secondary.greenPale,
+  },
+  sectionTitle: {
+    ...typography.textStyles.h4,
+    color: colors.primary.darkGreen,
+    fontWeight: typography.fontWeight.semibold,
   },
   label: {
     ...typography.textStyles.body,

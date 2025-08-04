@@ -15,7 +15,7 @@ import { DELETE_PIN_MUTATION, DeletePinMutationResponse, DeletePinMutationVariab
 import { colors, typography, spacing, components } from '../../styles/theme';
 import { PinEditorForm } from './PinEditorForm';
 import { ConfirmationDialog } from '../common/ConfirmationDialog';
-import { TagBubbleList, TagInput } from '../common';
+import { TagBubbleList, TagInput, PhotoGallery, NotesHistory } from '../common';
 import { useMapStore } from '../../state/mapStore';
 import { getCurrentTags, generateTagFromName } from '../../utils/tagUtils';
 
@@ -38,6 +38,7 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showTagInput, setShowTagInput] = useState(false);
+  const [isNotesEditing, setIsNotesEditing] = useState(false);
   
   // Map store for tag navigation
   const setTagAndNavigate = useMapStore((state) => state.setTagAndNavigate);
@@ -122,6 +123,31 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
     return getCurrentTags(pin);
   };
 
+  // Helper functions for new fields
+  const getPlantingDate = (): string | undefined => {
+    return (pin?.metadata as any)?.plantingDate;
+  };
+
+  const getFertilizedDate = (): string | undefined => {
+    return (pin?.metadata as any)?.fertilizedDate;
+  };
+
+  const getPruningDate = (): string | undefined => {
+    return (pin?.metadata as any)?.pruningDate;
+  };
+
+  const getOrigin = (): string | undefined => {
+    return (pin?.metadata as any)?.origin;
+  };
+
+  const getPhotos = (): string[] => {
+    return (pin?.metadata as any)?.photos || [];
+  };
+
+  const getNotes = (): Array<{ text: string; timestamp: string; userId?: string }> => {
+    return (pin?.metadata as any)?.notes?.entries || [];
+  };
+
   // Handle adding a new tag
   const handleAddTag = (newTag: string) => {
     if (!pinId) return;
@@ -178,22 +204,76 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
     onClose(); // Close the detail sheet to show the map
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+  // Handle adding a new note
+  const handleAddNote = (noteText: string) => {
+    if (!pinId) return;
+    
+    const currentNotes = getNotes();
+    const newNote = {
+      text: noteText,
+      timestamp: new Date().toISOString(),
+    };
+    
+    const updatedNotes = {
+      entries: [...currentNotes, newNote],
+    };
+    
+    updatePin({
+      variables: {
+        input: {
+          id: pinId,
+          metadata: {
+            ...pin?.metadata,
+            notes: updatedNotes,
+          },
+        },
+      },
     });
+  };
+
+  // Handle photo management
+  const handleAddPhoto = () => {
+    // This will be handled by the PinEditorForm
+    setShowEditForm(true);
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    if (!pinId) return;
+    
+    const currentPhotos = getPhotos();
+    const updatedPhotos = currentPhotos.filter((_, i) => i !== index);
+    
+    updatePin({
+      variables: {
+        input: {
+          id: pinId,
+          metadata: {
+            ...pin?.metadata,
+            photos: updatedPhotos,
+          },
+        },
+      },
+    });
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'active':
+      case 'growing':
         return colors.functional.success;
-      case 'inactive':
-        return colors.functional.error;
-      case 'pending':
+      case 'flowering':
+        return colors.accent.teal;
+      case 'fruiting':
         return colors.accent.amber;
+      case 'seedling':
+        return colors.accent.blue;
       default:
         return colors.functional.neutral;
     }
@@ -203,12 +283,14 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
     switch (pinType.toLowerCase()) {
       case 'tree':
         return colors.primary.darkGreen;
-      case 'plant':
-        return colors.secondary.greenLight;
-      case 'seedling':
-        return colors.accent.amber;
       case 'flower':
         return colors.accent.teal;
+      case 'vine':
+        return colors.accent.amber;
+      case 'bush':
+        return colors.secondary.greenLight;
+      case 'other':
+        return colors.functional.neutral;
       default:
         return colors.primary.darkGreen;
     }
@@ -346,24 +428,60 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                   </View>
                 </View>
 
-                {/* Metadata (excluding tags since they're shown separately) */}
-                {pin.metadata && Object.keys(pin.metadata).length > 0 && (() => {
-                  const metadata = pin.metadata as any;
-                  const nonTagMetadata = { ...metadata };
-                  delete nonTagMetadata.tags;
-                  
-                  if (Object.keys(nonTagMetadata).length > 0) {
-                    return (
-                      <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Additional Info</Text>
-                        <Text style={styles.metadataText}>
-                          {JSON.stringify(nonTagMetadata, null, 2)}
-                        </Text>
+                {/* Photos */}
+                <View style={styles.section}>
+                  <PhotoGallery
+                    photos={getPhotos()}
+                    onAddPhoto={handleAddPhoto}
+                    onRemovePhoto={handleRemovePhoto}
+                    maxPhotos={6}
+                  />
+                </View>
+
+                {/* Notes */}
+                <View style={styles.section}>
+                  <NotesHistory
+                    notes={getNotes()}
+                    onAddNote={handleAddNote}
+                    isEditing={isNotesEditing}
+                    onToggleEdit={() => setIsNotesEditing(!isNotesEditing)}
+                  />
+                </View>
+
+                {/* Plant Details */}
+                {(getPlantingDate() || getFertilizedDate() || getPruningDate() || getOrigin()) && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Plant Details</Text>
+                    
+                    {getPlantingDate() && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Planting Date:</Text>
+                        <Text style={styles.detailValue}>{formatDate(getPlantingDate()!)}</Text>
                       </View>
-                    );
-                  }
-                  return null;
-                })()}
+                    )}
+                    
+                    {getFertilizedDate() && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Fertilized Date:</Text>
+                        <Text style={styles.detailValue}>{formatDate(getFertilizedDate()!)}</Text>
+                      </View>
+                    )}
+                    
+                    {getPruningDate() && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Pruning Date:</Text>
+                        <Text style={styles.detailValue}>{formatDate(getPruningDate()!)}</Text>
+                      </View>
+                    )}
+                    
+                    {getOrigin() && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Origin:</Text>
+                        <Text style={styles.detailValue}>{getOrigin()}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
 
                 {/* Actions */}
                 <View style={styles.actionsSection}>
@@ -569,6 +687,21 @@ const styles = StyleSheet.create({
     ...typography.textStyles.bodySmall,
     color: colors.functional.darkGray,
     fontWeight: '500',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  detailLabel: {
+    ...typography.textStyles.bodySmall,
+    color: colors.functional.neutral,
+    fontWeight: '500',
+  },
+  detailValue: {
+    ...typography.textStyles.bodySmall,
+    color: colors.functional.darkGray,
+    fontWeight: '600',
   },
   metadataText: {
     ...typography.textStyles.bodySmall,
