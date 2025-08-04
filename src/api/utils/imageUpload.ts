@@ -130,13 +130,9 @@ export const uploadImageToStorage = async (
   try {
     console.log(`📤 Uploading image: ${imageUri} (attempt ${retryCount + 1})`);
     
-    // Check configuration on first attempt
-    if (retryCount === 0) {
-      const configCheck = await checkSupabaseConfig();
-      if (!configCheck.valid) {
-        throw new Error(configCheck.error);
-      }
-    }
+    // Skip bucket listing check since direct upload works
+    // The bucket listing issue doesn't affect actual uploads
+    // We'll handle bucket issues through upload error responses
     
     // Generate a unique filename
     const timestamp = Date.now();
@@ -176,6 +172,18 @@ export const uploadImageToStorage = async (
 
       if (error) {
         console.error('❌ Supabase upload error:', error);
+        
+        // Handle specific bucket-related errors
+        if (error.message.includes('bucket') || error.message.includes('not found')) {
+          throw new Error(`Bucket access error: ${error.message}. Please check if the 'images' bucket exists and has proper permissions.`);
+        }
+        
+        // Handle permission errors
+        if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+          throw new Error(`Permission error: ${error.message}. Please check your authentication and bucket policies.`);
+        }
+        
+        // Handle other errors
         throw new Error(`Failed to upload image: ${error.message}`);
       }
 
@@ -397,6 +405,77 @@ export const diagnoseBucketIssue = async (): Promise<void> => {
     console.error('❌ Diagnosis failed:', error);
   }
 }; 
+
+/**
+ * Diagnostic function to run when uploads fail
+ */
+export const diagnoseUploadFailure = async (): Promise<{ issue: string; solution: string }> => {
+  console.log('🔍 Diagnosing upload failure...');
+  
+  try {
+    // Test 1: Check if bucket exists by trying to list files
+    const { data: files, error: listError } = await supabase.storage
+      .from('images')
+      .list('', { limit: 1 });
+    
+    if (listError) {
+      if (listError.message.includes('bucket') || listError.message.includes('not found')) {
+        return {
+          issue: 'Bucket does not exist',
+          solution: 'Create a bucket named "images" in your Supabase Storage dashboard'
+        };
+      }
+      if (listError.message.includes('permission') || listError.message.includes('unauthorized')) {
+        return {
+          issue: 'Permission denied',
+          solution: 'Check your bucket policies and ensure you are authenticated'
+        };
+      }
+    }
+    
+    // Test 2: Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return {
+        issue: 'Authentication failed',
+        solution: 'Please log in again to refresh your authentication token'
+      };
+    }
+    
+    // Test 3: Try a simple upload
+    const testFileName = `diagnostic-${Date.now()}.txt`;
+    const testContent = 'diagnostic test';
+    
+    const { error: uploadError } = await supabase.storage
+      .from('images')
+      .upload(testFileName, testContent, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+    
+    if (uploadError) {
+      return {
+        issue: 'Upload permission denied',
+        solution: 'Check your bucket INSERT policy allows authenticated users'
+      };
+    }
+    
+    // Clean up test file
+    await supabase.storage.from('images').remove([testFileName]);
+    
+    return {
+      issue: 'Unknown issue',
+      solution: 'Upload should work. Please try again or contact support.'
+    };
+    
+  } catch (error) {
+    return {
+      issue: 'Network or configuration error',
+      solution: 'Check your internet connection and Supabase configuration'
+    };
+  }
+};
 
 /**
  * Direct upload test that bypasses bucket listing
