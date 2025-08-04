@@ -314,3 +314,86 @@ export const takePhoto = async (): Promise<string | null> => {
     throw new Error(`Failed to take photo: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }; 
+
+/**
+ * Detailed bucket diagnostic function
+ */
+export const diagnoseBucketIssue = async (): Promise<void> => {
+  console.log('🔍 Starting detailed bucket diagnosis...');
+  
+  try {
+    // Test 1: Check if we can list buckets at all
+    console.log('1️⃣ Testing bucket listing...');
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    
+    if (bucketsError) {
+      console.error('❌ Cannot list buckets:', bucketsError);
+      return;
+    }
+    
+    console.log('✅ Can list buckets');
+    console.log('📦 All buckets:', buckets?.map(b => ({ name: b.name, public: b.public })) || []);
+    
+    // Test 2: Try to access the images bucket directly
+    console.log('2️⃣ Testing direct images bucket access...');
+    const { data: files, error: filesError } = await supabase.storage
+      .from('images')
+      .list('', { limit: 1 });
+    
+    if (filesError) {
+      console.error('❌ Cannot access images bucket:', filesError);
+      console.log('🔍 Error details:', {
+        message: filesError.message,
+        details: filesError.details,
+        hint: filesError.hint
+      });
+    } else {
+      console.log('✅ Can access images bucket directly');
+      console.log('📁 Files in bucket:', files?.length || 0);
+    }
+    
+    // Test 3: Check authentication
+    console.log('3️⃣ Testing authentication...');
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError) {
+      console.error('❌ Authentication error:', authError);
+    } else if (!user) {
+      console.warn('⚠️ No authenticated user');
+    } else {
+      console.log('✅ Authenticated as:', user.email);
+    }
+    
+    // Test 4: Try a simple upload test
+    console.log('4️⃣ Testing simple upload...');
+    const testFileName = `test-${Date.now()}.txt`;
+    const testContent = 'test';
+    
+    const { error: uploadError } = await supabase.storage
+      .from('images')
+      .upload(testFileName, testContent, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+    
+    if (uploadError) {
+      console.error('❌ Test upload failed:', uploadError);
+      console.log('🔍 Upload error details:', {
+        message: uploadError.message,
+        details: uploadError.details,
+        hint: uploadError.hint
+      });
+    } else {
+      console.log('✅ Test upload successful');
+      
+      // Clean up test file
+      await supabase.storage.from('images').remove([testFileName]);
+      console.log('🧹 Test file cleaned up');
+    }
+    
+    console.log('🎉 Diagnosis complete!');
+    
+  } catch (error) {
+    console.error('❌ Diagnosis failed:', error);
+  }
+}; 

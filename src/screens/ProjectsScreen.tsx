@@ -17,7 +17,7 @@ import { MY_PROJECTS_QUERY, MyProjectsQueryResponse, Project } from '../api/quer
 import { ProjectListItem } from '../components/projects';
 import { CreateProjectModal } from '../components/common';
 import { useMapStore } from '../state/mapStore';
-import { testSupabaseConnection } from '../api/utils/imageUpload';
+import { testSupabaseConnection, diagnoseBucketIssue } from '../api/utils/imageUpload';
 
 export const ProjectsScreen: React.FC = () => {
   const router = useRouter();
@@ -50,6 +50,18 @@ export const ProjectsScreen: React.FC = () => {
     } catch (error) {
       console.error('Test failed:', error);
       Alert.alert('Test Failed', 'Check console for details');
+    }
+  };
+
+  // Detailed bucket diagnostic function
+  const handleDiagnoseBucket = async () => {
+    try {
+      console.log('🔍 Starting bucket diagnosis...');
+      await diagnoseBucketIssue();
+      Alert.alert('Diagnosis Complete', 'Check the console logs for detailed results');
+    } catch (error) {
+      console.error('Diagnosis failed:', error);
+      Alert.alert('Diagnosis Failed', 'Check console for details');
     }
   };
 
@@ -116,15 +128,26 @@ export const ProjectsScreen: React.FC = () => {
         </Text>
       </View>
 
-      {/* Temporary test button */}
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.accent.blue, marginBottom: spacing.md }]}
-        onPress={handleTestSupabase}
-      >
-        <Text style={[styles.fabText, { color: colors.functional.white }]}>
-          Test Supabase
-        </Text>
-      </TouchableOpacity>
+      {/* Temporary test buttons */}
+      <View style={styles.testButtonsContainer}>
+        <TouchableOpacity
+          style={[styles.testButton, { backgroundColor: colors.accent.blue }]}
+          onPress={handleTestSupabase}
+        >
+          <Text style={[styles.testButtonText, { color: colors.functional.white }]}>
+            Test Supabase
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.testButton, { backgroundColor: colors.accent.amber }]}
+          onPress={handleDiagnoseBucket}
+        >
+          <Text style={[styles.testButtonText, { color: colors.functional.white }]}>
+            Diagnose Bucket
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <FlatList
         data={projects}
@@ -253,5 +276,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.background.white,
     lineHeight: 28,
+  },
+  testButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  testButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: spacing.sm,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  testButtonText: {
+    ...typography.textStyles.body,
+    fontWeight: '600',
   },
 }); 
