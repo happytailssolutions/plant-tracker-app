@@ -214,69 +214,70 @@ export const uploadImageToStorage = async (
       clearTimeout(timeoutId);
       console.log(`❌ Fetch failed: ${fetchError}`);
       
-      // Fallback: Try using FileSystem for Android
-      if (Platform.OS === 'android' && imageUri.startsWith('file://')) {
-        try {
-          console.log(`🔄 Trying FileSystem fallback for: ${imageUri}`);
-          
-          // Read file as base64
-          const base64 = await FileSystem.readAsStringAsync(imageUri, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-          
-          // Convert base64 to blob
-          const binaryString = atob(base64);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          const blob = new Blob([bytes], { type: 'image/jpeg' });
-          
-          console.log(`📦 Fallback blob created, size: ${blob.size} bytes`);
-          
-          // Upload to Supabase Storage
-          console.log(`🚀 Uploading to Supabase (fallback): ${fileName}`);
-          const { error } = await supabase.storage
-            .from('images')
-            .upload(fileName, blob, {
-              cacheControl: '3600',
-              upsert: false,
-            });
+             // Fallback: Try using FileSystem for Android
+       if (Platform.OS === 'android' && imageUri.startsWith('file://')) {
+         try {
+           console.log(`🔄 Trying FileSystem fallback for: ${imageUri}`);
+           
+           // Read file as base64
+           const base64 = await FileSystem.readAsStringAsync(imageUri, {
+             encoding: FileSystem.EncodingType.Base64,
+           });
+           
+           console.log(`📦 Base64 data read, length: ${base64.length}`);
+           
+           // Create a data URL from base64
+           const dataUrl = `data:image/jpeg;base64,${base64}`;
+           
+           // Try to fetch the data URL
+           const dataResponse = await fetch(dataUrl);
+           const dataBlob = await dataResponse.blob();
+           
+           console.log(`📦 Data URL blob created, size: ${dataBlob.size} bytes`);
+           
+           // Upload to Supabase Storage
+           console.log(`🚀 Uploading to Supabase (fallback): ${fileName}`);
+           const { error } = await supabase.storage
+             .from('images')
+             .upload(fileName, dataBlob, {
+               cacheControl: '3600',
+               upsert: false,
+             });
 
-          if (error) {
-            console.error('❌ Supabase upload error (fallback):', error);
-            
-            // Handle specific bucket-related errors
-            if (error.message.includes('bucket') || error.message.includes('not found')) {
-              throw new Error(`Bucket access error: ${error.message}. Please check if the 'images' bucket exists and has proper permissions.`);
-            }
-            
-            // Handle permission errors
-            if (error.message.includes('permission') || error.message.includes('unauthorized')) {
-              throw new Error(`Permission error: ${error.message}. Please check your authentication and bucket policies.`);
-            }
-            
-            // Handle other errors
-            throw new Error(`Failed to upload image: ${error.message}`);
-          }
+           if (error) {
+             console.error('❌ Supabase upload error (fallback):', error);
+             
+             // Handle specific bucket-related errors
+             if (error.message.includes('bucket') || error.message.includes('not found')) {
+               throw new Error(`Bucket access error: ${error.message}. Please check if the 'images' bucket exists and has proper permissions.`);
+             }
+             
+             // Handle permission errors
+             if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+               throw new Error(`Permission error: ${error.message}. Please check your authentication and bucket policies.`);
+             }
+             
+             // Handle other errors
+             throw new Error(`Failed to upload image: ${error.message}`);
+           }
 
-          // Get the public URL
-          const { data: urlData } = supabase.storage
-            .from('images')
-            .getPublicUrl(fileName);
+           // Get the public URL
+           const { data: urlData } = supabase.storage
+             .from('images')
+             .getPublicUrl(fileName);
 
-          console.log(`✅ Image uploaded successfully (fallback): ${urlData.publicUrl}`);
-          
-          return {
-            url: urlData.publicUrl,
-            path: fileName,
-          };
-          
-        } catch (fallbackError) {
-          console.error('❌ Fallback method also failed:', fallbackError);
-          throw new Error(`Both fetch and FileSystem methods failed: ${fetchError.message}`);
-        }
-      }
+           console.log(`✅ Image uploaded successfully (fallback): ${urlData.publicUrl}`);
+           
+           return {
+             url: urlData.publicUrl,
+             path: fileName,
+           };
+           
+         } catch (fallbackError) {
+           console.error('❌ Fallback method also failed:', fallbackError);
+           throw new Error(`Both fetch and FileSystem methods failed: ${fetchError.message}`);
+         }
+       }
       
       throw fetchError;
     }
