@@ -358,22 +358,36 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                   </View>
                 )}
 
-                {/* Location */}
+                {/* Plant Details - Location, Project, Created By */}
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Location</Text>
-                  <Text style={styles.coordinatesText}>
-                    {pin.latitude.toFixed(6)}, {pin.longitude.toFixed(6)}
-                  </Text>
-                </View>
-
-                {/* Project */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Project</Text>
-                  <Text style={styles.projectName}>{pin.project.name}</Text>
-                  {pin.project.description && (
-                    <Text style={styles.projectDescription}>
-                      {pin.project.description}
+                  <Text style={styles.sectionTitle}>Plant Details</Text>
+                  
+                  {/* Location */}
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Location:</Text>
+                    <Text style={styles.detailValue}>
+                      {pin.latitude.toFixed(6)}, {pin.longitude.toFixed(6)}
                     </Text>
+                  </View>
+                  
+                  {/* Project */}
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Project:</Text>
+                    <Text style={styles.detailValue}>{pin.project.name}</Text>
+                  </View>
+                  
+                  {/* Created By */}
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Created By:</Text>
+                    <Text style={styles.detailValue}>{pin.createdBy.name}</Text>
+                  </View>
+                  
+                  {/* Origin (if available) */}
+                  {getOrigin() && (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Origin:</Text>
+                      <Text style={styles.detailValue}>{getOrigin()}</Text>
+                    </View>
                   )}
                 </View>
 
@@ -408,16 +422,11 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                   />
                 </View>
 
-                {/* Created By */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Created By</Text>
-                  <Text style={styles.creatorName}>{pin.createdBy.name}</Text>
-                  <Text style={styles.creatorEmail}>{pin.createdBy.email}</Text>
-                </View>
-
-                {/* Dates */}
+                {/* Timeline - All Dates */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Timeline</Text>
+                  
+                  {/* System Dates */}
                   <View style={styles.dateRow}>
                     <Text style={styles.dateLabel}>Created:</Text>
                     <Text style={styles.dateValue}>{formatDate(pin.createdAt)}</Text>
@@ -426,6 +435,28 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                     <Text style={styles.dateLabel}>Updated:</Text>
                     <Text style={styles.dateValue}>{formatDate(pin.updatedAt)}</Text>
                   </View>
+                  
+                  {/* Plant Care Dates */}
+                  {getPlantingDate() && (
+                    <View style={styles.dateRow}>
+                      <Text style={styles.dateLabel}>Planted:</Text>
+                      <Text style={styles.dateValue}>{formatDate(getPlantingDate()!)}</Text>
+                    </View>
+                  )}
+                  
+                  {getFertilizedDate() && (
+                    <View style={styles.dateRow}>
+                      <Text style={styles.dateLabel}>Fertilized:</Text>
+                      <Text style={styles.dateValue}>{formatDate(getFertilizedDate()!)}</Text>
+                    </View>
+                  )}
+                  
+                  {getPruningDate() && (
+                    <View style={styles.dateRow}>
+                      <Text style={styles.dateLabel}>Pruned:</Text>
+                      <Text style={styles.dateValue}>{formatDate(getPruningDate()!)}</Text>
+                    </View>
+                  )}
                 </View>
 
                 {/* Photos */}
@@ -447,41 +478,6 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                     onToggleEdit={() => setIsNotesEditing(!isNotesEditing)}
                   />
                 </View>
-
-                {/* Plant Details */}
-                {(getPlantingDate() || getFertilizedDate() || getPruningDate() || getOrigin()) && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Plant Details</Text>
-                    
-                    {getPlantingDate() && (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Planting Date:</Text>
-                        <Text style={styles.detailValue}>{formatDate(getPlantingDate()!)}</Text>
-                      </View>
-                    )}
-                    
-                    {getFertilizedDate() && (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Fertilized Date:</Text>
-                        <Text style={styles.detailValue}>{formatDate(getFertilizedDate()!)}</Text>
-                      </View>
-                    )}
-                    
-                    {getPruningDate() && (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Pruning Date:</Text>
-                        <Text style={styles.detailValue}>{formatDate(getPruningDate()!)}</Text>
-                      </View>
-                    )}
-                    
-                    {getOrigin() && (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Origin:</Text>
-                        <Text style={styles.detailValue}>{getOrigin()}</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
 
                 {/* Actions */}
                 <View style={styles.actionsSection}>
