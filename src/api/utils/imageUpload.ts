@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system';
 
 export interface UploadedImage {
   url: string;
@@ -140,12 +141,22 @@ export const uploadImageToStorage = async (
     const fileExtension = imageUri.split('.').pop() || 'jpg';
     const fileName = `${folder}/${timestamp}-${randomString}.${fileExtension}`;
 
-    // Convert image to blob with timeout
+    // Convert image to blob with better error handling
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
     try {
-      const response = await fetch(imageUri, {
+      console.log(`🔍 Fetching image from: ${imageUri}`);
+      
+      // Handle different URI schemes
+      let fetchUri = imageUri;
+      if (Platform.OS === 'android' && imageUri.startsWith('file://')) {
+        // For Android file URIs, try without the file:// prefix
+        fetchUri = imageUri.replace('file://', '');
+        console.log(`📱 Android file URI detected, trying: ${fetchUri}`);
+      }
+      
+      const response = await fetch(fetchUri, {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/octet-stream',
@@ -201,6 +212,72 @@ export const uploadImageToStorage = async (
       
     } catch (fetchError) {
       clearTimeout(timeoutId);
+      console.log(`❌ Fetch failed: ${fetchError}`);
+      
+      // Fallback: Try using FileSystem for Android
+      if (Platform.OS === 'android' && imageUri.startsWith('file://')) {
+        try {
+          console.log(`🔄 Trying FileSystem fallback for: ${imageUri}`);
+          
+          // Read file as base64
+          const base64 = await FileSystem.readAsStringAsync(imageUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          
+          // Convert base64 to blob
+          const binaryString = atob(base64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: 'image/jpeg' });
+          
+          console.log(`📦 Fallback blob created, size: ${blob.size} bytes`);
+          
+          // Upload to Supabase Storage
+          console.log(`🚀 Uploading to Supabase (fallback): ${fileName}`);
+          const { error } = await supabase.storage
+            .from('images')
+            .upload(fileName, blob, {
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (error) {
+            console.error('❌ Supabase upload error (fallback):', error);
+            
+            // Handle specific bucket-related errors
+            if (error.message.includes('bucket') || error.message.includes('not found')) {
+              throw new Error(`Bucket access error: ${error.message}. Please check if the 'images' bucket exists and has proper permissions.`);
+            }
+            
+            // Handle permission errors
+            if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+              throw new Error(`Permission error: ${error.message}. Please check your authentication and bucket policies.`);
+            }
+            
+            // Handle other errors
+            throw new Error(`Failed to upload image: ${error.message}`);
+          }
+
+          // Get the public URL
+          const { data: urlData } = supabase.storage
+            .from('images')
+            .getPublicUrl(fileName);
+
+          console.log(`✅ Image uploaded successfully (fallback): ${urlData.publicUrl}`);
+          
+          return {
+            url: urlData.publicUrl,
+            path: fileName,
+          };
+          
+        } catch (fallbackError) {
+          console.error('❌ Fallback method also failed:', fallbackError);
+          throw new Error(`Both fetch and FileSystem methods failed: ${fetchError.message}`);
+        }
+      }
+      
       throw fetchError;
     }
     
