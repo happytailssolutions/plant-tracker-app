@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   label: {
-    ...typography.textStyles.label,
+    ...typography.textStyles.body,
     color: colors.functional.darkGray,
     marginBottom: spacing.xs,
   },

@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   emptyTitle: {
-    ...typography.textStyles.h4,
+    ...typography.textStyles.h3,
     color: colors.functional.darkGray,
     marginBottom: spacing.xs,
   },

@@ -536,7 +536,7 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
             {/* Origin */}
             <Dropdown
               label="Origin"
-              value={formData.origin}
+              value={formData.origin || ''}
               options={ORIGIN_OPTIONS}
               onValueChange={(value) => updateField('origin', value)}
               placeholder="Select origin"
@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.secondary.greenPale,
   },
   sectionTitle: {
-    ...typography.textStyles.h4,
+    ...typography.textStyles.h3,
     color: colors.primary.darkGreen,
     fontWeight: typography.fontWeight.semibold,
   },
