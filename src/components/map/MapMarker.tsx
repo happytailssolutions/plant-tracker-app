@@ -21,12 +21,14 @@ export const MapMarker: React.FC<MapMarkerProps> = ({ pin, onPress }) => {
     switch (pinType.toLowerCase()) {
       case 'tree':
         return colors.primary.darkGreen;
-      case 'plant':
-        return colors.secondary.greenLight;
-      case 'seedling':
-        return colors.accent.amber;
       case 'flower':
         return colors.accent.teal;
+      case 'vine':
+        return colors.accent.amber;
+      case 'bush':
+        return colors.secondary.greenLight;
+      case 'other':
+        return colors.functional.neutral;
       default:
         return colors.primary.darkGreen;
     }
