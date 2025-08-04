@@ -8,6 +8,116 @@ export interface UploadedImage {
 }
 
 /**
+ * Diagnostic function to check Supabase configuration
+ */
+export const checkSupabaseConfig = async (): Promise<{ valid: boolean; error?: string }> => {
+  try {
+    console.log('🔍 Checking Supabase configuration...');
+    
+    // Check if supabase client is properly configured
+    if (!supabase) {
+      return { valid: false, error: 'Supabase client not initialized' };
+    }
+    
+    // Check if we can access storage
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    
+    if (bucketsError) {
+      console.error('❌ Supabase storage error:', bucketsError);
+      return { valid: false, error: `Storage access error: ${bucketsError.message}` };
+    }
+    
+    console.log('✅ Supabase storage accessible');
+    console.log('📦 Available buckets:', buckets?.map(b => b.name) || []);
+    
+    // Check if 'images' bucket exists
+    const imagesBucket = buckets?.find(b => b.name === 'images');
+    if (!imagesBucket) {
+      return { valid: false, error: 'Images bucket not found. Please create a bucket named "images" in Supabase.' };
+    }
+    
+    console.log('✅ Images bucket found');
+    
+    // Test upload permissions with a small test
+    const testFileName = `test-${Date.now()}.txt`;
+    const testContent = 'test';
+    
+    const { error: testError } = await supabase.storage
+      .from('images')
+      .upload(testFileName, testContent, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+    
+    if (testError) {
+      console.error('❌ Test upload failed:', testError);
+      return { valid: false, error: `Upload permission error: ${testError.message}` };
+    }
+    
+    // Clean up test file
+    await supabase.storage.from('images').remove([testFileName]);
+    
+    console.log('✅ Upload permissions verified');
+    return { valid: true };
+    
+  } catch (error) {
+    console.error('❌ Configuration check failed:', error);
+    return { valid: false, error: `Configuration check failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+};
+
+/**
+ * Manual test function to diagnose Supabase configuration
+ * Call this function to test if Supabase is properly configured
+ */
+export const testSupabaseConnection = async (): Promise<void> => {
+  console.log('🧪 Starting Supabase connection test...');
+  
+  try {
+    // Test 1: Check basic configuration
+    console.log('1️⃣ Testing basic configuration...');
+    const configCheck = await checkSupabaseConfig();
+    
+    if (!configCheck.valid) {
+      console.error('❌ Configuration test failed:', configCheck.error);
+      return;
+    }
+    
+    console.log('✅ Configuration test passed');
+    
+    // Test 2: Test authentication
+    console.log('2️⃣ Testing authentication...');
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError) {
+      console.error('❌ Authentication test failed:', authError.message);
+    } else if (!user) {
+      console.warn('⚠️ No authenticated user found');
+    } else {
+      console.log('✅ Authentication test passed');
+    }
+    
+    // Test 3: Test storage bucket access
+    console.log('3️⃣ Testing storage bucket access...');
+    const { data: files, error: listError } = await supabase.storage
+      .from('images')
+      .list('pins', { limit: 1 });
+    
+    if (listError) {
+      console.error('❌ Storage list test failed:', listError.message);
+    } else {
+      console.log('✅ Storage list test passed');
+      console.log(`📁 Found ${files?.length || 0} files in pins folder`);
+    }
+    
+    console.log('🎉 All tests completed!');
+    
+  } catch (error) {
+    console.error('❌ Test suite failed:', error);
+  }
+};
+
+/**
  * Upload a single image to Supabase Storage with retry logic
  */
 export const uploadImageToStorage = async (
@@ -18,7 +128,15 @@ export const uploadImageToStorage = async (
   const maxRetries = 3;
   
   try {
-    console.log(`Uploading image: ${imageUri} (attempt ${retryCount + 1})`);
+    console.log(`📤 Uploading image: ${imageUri} (attempt ${retryCount + 1})`);
+    
+    // Check configuration on first attempt
+    if (retryCount === 0) {
+      const configCheck = await checkSupabaseConfig();
+      if (!configCheck.valid) {
+        throw new Error(configCheck.error);
+      }
+    }
     
     // Generate a unique filename
     const timestamp = Date.now();
@@ -45,9 +163,10 @@ export const uploadImageToStorage = async (
       }
       
       const blob = await response.blob();
-      console.log(`Image blob created, size: ${blob.size} bytes`);
+      console.log(`📦 Image blob created, size: ${blob.size} bytes`);
       
       // Upload to Supabase Storage
+      console.log(`🚀 Uploading to Supabase: ${fileName}`);
       const { error } = await supabase.storage
         .from('images')
         .upload(fileName, blob, {
@@ -56,7 +175,7 @@ export const uploadImageToStorage = async (
         });
 
       if (error) {
-        console.error('Supabase upload error:', error);
+        console.error('❌ Supabase upload error:', error);
         throw new Error(`Failed to upload image: ${error.message}`);
       }
 
@@ -65,7 +184,7 @@ export const uploadImageToStorage = async (
         .from('images')
         .getPublicUrl(fileName);
 
-      console.log(`Image uploaded successfully: ${urlData.publicUrl}`);
+      console.log(`✅ Image uploaded successfully: ${urlData.publicUrl}`);
       
       return {
         url: urlData.publicUrl,
@@ -78,7 +197,7 @@ export const uploadImageToStorage = async (
     }
     
   } catch (error) {
-    console.error(`Error uploading image (attempt ${retryCount + 1}):`, error);
+    console.error(`❌ Error uploading image (attempt ${retryCount + 1}):`, error);
     
     // Retry logic for network errors
     if (retryCount < maxRetries && (
@@ -89,7 +208,7 @@ export const uploadImageToStorage = async (
         error.message.includes('aborted')
       )
     )) {
-      console.log(`Retrying upload in ${(retryCount + 1) * 2} seconds...`);
+      console.log(`🔄 Retrying upload in ${(retryCount + 1) * 2} seconds...`);
       await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
       return uploadImageToStorage(imageUri, folder, retryCount + 1);
     }
