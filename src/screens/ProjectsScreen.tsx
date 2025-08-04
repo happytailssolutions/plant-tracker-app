@@ -21,7 +21,7 @@ import { testSupabaseConnection } from '../api/utils/imageUpload';
 
 export const ProjectsScreen: React.FC = () => {
   const router = useRouter();
-  const { selectedProjectId, setSelectedProjectId } = useMapStore();
+  const { selectedProjectId, setSelectedProject } = useMapStore();
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   
@@ -31,7 +31,7 @@ export const ProjectsScreen: React.FC = () => {
 
   const handleProjectPress = (project: Project) => {
     // Set the project in the map store and navigate to explore (map) tab
-    setSelectedProjectId(project.id);
+    setSelectedProject(project.id);
     router.push('/(tabs)/explore');
   };
 
