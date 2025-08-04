@@ -17,7 +17,7 @@ import { MY_PROJECTS_QUERY, MyProjectsQueryResponse, Project } from '../api/quer
 import { ProjectListItem } from '../components/projects';
 import { CreateProjectModal } from '../components/common';
 import { useMapStore } from '../state/mapStore';
-import { testSupabaseConnection, diagnoseBucketIssue } from '../api/utils/imageUpload';
+import { testSupabaseConnection, diagnoseBucketIssue, testDirectUpload } from '../api/utils/imageUpload';
 
 export const ProjectsScreen: React.FC = () => {
   const router = useRouter();
@@ -62,6 +62,18 @@ export const ProjectsScreen: React.FC = () => {
     } catch (error) {
       console.error('Diagnosis failed:', error);
       Alert.alert('Diagnosis Failed', 'Check console for details');
+    }
+  };
+
+  // Direct upload test function
+  const handleDirectUpload = async () => {
+    try {
+      console.log('🚀 Starting direct upload test...');
+      await testDirectUpload();
+      Alert.alert('Direct Upload Test Complete', 'Check the console logs for results');
+    } catch (error) {
+      console.error('Direct upload test failed:', error);
+      Alert.alert('Direct Upload Test Failed', 'Check console for details');
     }
   };
 
@@ -145,6 +157,15 @@ export const ProjectsScreen: React.FC = () => {
         >
           <Text style={[styles.testButtonText, { color: colors.functional.white }]}>
             Diagnose Bucket
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.testButton, { backgroundColor: colors.accent.teal }]}
+          onPress={handleDirectUpload}
+        >
+          <Text style={[styles.testButtonText, { color: colors.functional.white }]}>
+            Direct Upload
           </Text>
         </TouchableOpacity>
       </View>

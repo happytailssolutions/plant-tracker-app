@@ -397,3 +397,58 @@ export const diagnoseBucketIssue = async (): Promise<void> => {
     console.error('❌ Diagnosis failed:', error);
   }
 }; 
+
+/**
+ * Direct upload test that bypasses bucket listing
+ */
+export const testDirectUpload = async (): Promise<void> => {
+  console.log('🚀 Testing direct upload (bypassing bucket listing)...');
+  
+  try {
+    // Test 1: Try to upload directly without checking bucket existence
+    console.log('1️⃣ Attempting direct upload...');
+    const testFileName = `direct-test-${Date.now()}.txt`;
+    const testContent = 'direct upload test';
+    
+    const { error: uploadError } = await supabase.storage
+      .from('images')
+      .upload(testFileName, testContent, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+    
+    if (uploadError) {
+      console.error('❌ Direct upload failed:', uploadError);
+      console.log('🔍 Upload error details:', {
+        message: uploadError.message,
+        details: uploadError.details,
+        hint: uploadError.hint,
+        statusCode: uploadError.statusCode
+      });
+    } else {
+      console.log('✅ Direct upload successful!');
+      
+      // Clean up test file
+      await supabase.storage.from('images').remove([testFileName]);
+      console.log('🧹 Test file cleaned up');
+    }
+    
+    // Test 2: Try to list files in the bucket (not buckets)
+    console.log('2️⃣ Testing file listing within bucket...');
+    const { data: files, error: listError } = await supabase.storage
+      .from('images')
+      .list('', { limit: 10 });
+    
+    if (listError) {
+      console.error('❌ File listing failed:', listError);
+    } else {
+      console.log('✅ File listing successful');
+      console.log('📁 Files in bucket:', files?.length || 0);
+    }
+    
+    console.log('🎉 Direct upload test complete!');
+    
+  } catch (error) {
+    console.error('❌ Direct upload test failed:', error);
+  }
+}; 
