@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { useQuery } from '@apollo/client';
-import { router } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  RefreshControl,
+  ActivityIndicator,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useQuery, useMutation } from '@apollo/client';
+import { IconSymbol } from '../components/ui/IconSymbol';
 import { colors, typography, spacing, components } from '../styles/theme';
 import { MY_PROJECTS_QUERY, MyProjectsQueryResponse, Project } from '../api/queries/projectQueries';
 import { ProjectListItem } from '../components/projects';
 import { CreateProjectModal } from '../components/common';
 import { useMapStore } from '../state/mapStore';
+import { testSupabaseConnection } from '../api/utils/imageUpload';
 
 export const ProjectsScreen: React.FC = () => {
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const setProjectAndNavigate = useMapStore((state) => state.setProjectAndNavigate);
+  const router = useRouter();
+  const { selectedProjectId, setSelectedProjectId } = useMapStore();
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   const { data, loading, error, refetch } = useQuery<MyProjectsQueryResponse>(MY_PROJECTS_QUERY, {
     fetchPolicy: 'cache-and-network',
@@ -18,20 +31,34 @@ export const ProjectsScreen: React.FC = () => {
 
   const handleProjectPress = (project: Project) => {
     // Set the project in the map store and navigate to explore (map) tab
-    setProjectAndNavigate(project.id);
+    setSelectedProjectId(project.id);
     router.push('/(tabs)/explore');
   };
 
-  const handleRefresh = () => {
-    refetch();
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
+  // Temporary test function for Supabase
+  const handleTestSupabase = async () => {
+    try {
+      console.log('🧪 Testing Supabase connection...');
+      await testSupabaseConnection();
+      Alert.alert('Test Complete', 'Check the console logs for results');
+    } catch (error) {
+      console.error('Test failed:', error);
+      Alert.alert('Test Failed', 'Check console for details');
+    }
   };
 
   const handleCreateProject = () => {
-    setIsModalVisible(true);
+    setIsCreateModalVisible(true);
   };
 
   const handleModalClose = () => {
-    setIsModalVisible(false);
+    setIsCreateModalVisible(false);
   };
 
   const handleProjectCreated = () => {
@@ -89,6 +116,16 @@ export const ProjectsScreen: React.FC = () => {
         </Text>
       </View>
 
+      {/* Temporary test button */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: colors.accent.blue, marginBottom: spacing.md }]}
+        onPress={handleTestSupabase}
+      >
+        <Text style={[styles.fabText, { color: colors.functional.white }]}>
+          Test Supabase
+        </Text>
+      </TouchableOpacity>
+
       <FlatList
         data={projects}
         renderItem={renderProjectItem}
@@ -97,7 +134,7 @@ export const ProjectsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={loading}
+            refreshing={refreshing}
             onRefresh={handleRefresh}
             colors={[colors.primary.darkGreen]}
             tintColor={colors.primary.darkGreen}
@@ -117,7 +154,7 @@ export const ProjectsScreen: React.FC = () => {
 
       {/* Create Project Modal */}
       <CreateProjectModal
-        visible={isModalVisible}
+        visible={isCreateModalVisible}
         onClose={handleModalClose}
         onSuccess={handleProjectCreated}
       />
