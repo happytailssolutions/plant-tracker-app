@@ -46,6 +46,7 @@ const STATUS_OPTIONS = [
 const ORIGIN_OPTIONS = [
   { label: 'Seed', value: 'seed' },
   { label: 'Grafting', value: 'grafting' },
+  { label: 'Cutting', value: 'cutting' },
 ];
 
 // Types for the form data
@@ -62,7 +63,7 @@ interface PinFormData {
   plantingDate?: string;
   fertilizedDate?: string;
   pruningDate?: string;
-  origin?: 'seed' | 'grafting';
+  origin?: 'seed' | 'grafting' | 'cutting';
   notes?: {
     entries: Array<{
       text: string;

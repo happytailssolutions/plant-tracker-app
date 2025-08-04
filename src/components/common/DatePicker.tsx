@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,9 +26,16 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   error,
 }) => {
   const [showPicker, setShowPicker] = useState(false);
-  const [tempDate, setTempDate] = useState<Date | undefined>(
-    value ? new Date(value) : undefined
+  const [tempDate, setTempDate] = useState<Date>(
+    value ? new Date(value) : new Date()
   );
+
+  // Update tempDate when value prop changes
+  useEffect(() => {
+    if (value) {
+      setTempDate(new Date(value));
+    }
+  }, [value]);
 
   const formatDate = (date: Date): string => {
     const day = date.getDate().toString().padStart(2, '0');
@@ -42,35 +49,39 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowPicker(false);
-    }
-    
+    // Always update tempDate when user scrolls
     if (selectedDate) {
       setTempDate(selectedDate);
-      if (Platform.OS === 'ios') {
-        // On iOS, we'll confirm when user taps Done
-      } else {
-        // On Android, immediately save
+    }
+    
+    // On Android, close immediately after selection
+    if (Platform.OS === 'android') {
+      if (selectedDate) {
         onChange(formatDateForStorage(selectedDate));
       }
+      setShowPicker(false);
     }
+    // On iOS, keep open until user confirms
   };
 
   const handleConfirm = () => {
-    if (tempDate) {
-      onChange(formatDateForStorage(tempDate));
-    }
+    onChange(formatDateForStorage(tempDate));
     setShowPicker(false);
   };
 
   const handleCancel = () => {
-    setTempDate(value ? new Date(value) : undefined);
+    // Reset to original value
+    if (value) {
+      setTempDate(new Date(value));
+    } else {
+      setTempDate(new Date());
+    }
     setShowPicker(false);
   };
 
   const clearDate = () => {
     onChange('');
+    setTempDate(new Date());
   };
 
   return (
@@ -116,7 +127,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 </TouchableOpacity>
               </View>
               <DateTimePicker
-                value={tempDate || new Date()}
+                value={tempDate}
                 mode="date"
                 display="spinner"
                 onChange={handleDateChange}

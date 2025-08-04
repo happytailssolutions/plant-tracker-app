@@ -8,47 +8,93 @@ export interface UploadedImage {
 }
 
 /**
- * Upload a single image to Supabase Storage
+ * Upload a single image to Supabase Storage with retry logic
  */
 export const uploadImageToStorage = async (
   imageUri: string,
-  folder: string = 'pins'
+  folder: string = 'pins',
+  retryCount: number = 0
 ): Promise<UploadedImage> => {
+  const maxRetries = 3;
+  
   try {
+    console.log(`Uploading image: ${imageUri} (attempt ${retryCount + 1})`);
+    
     // Generate a unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     const fileExtension = imageUri.split('.').pop() || 'jpg';
     const fileName = `${folder}/${timestamp}-${randomString}.${fileExtension}`;
 
-    // Convert image to blob
-    const response = await fetch(imageUri);
-    const blob = await response.blob();
-
-    // Upload to Supabase Storage
-    const { error } = await supabase.storage
-      .from('images')
-      .upload(fileName, blob, {
-        cacheControl: '3600',
-        upsert: false,
+    // Convert image to blob with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    try {
+      const response = await fetch(imageUri, {
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/octet-stream',
+        },
       });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      console.log(`Image blob created, size: ${blob.size} bytes`);
+      
+      // Upload to Supabase Storage
+      const { error } = await supabase.storage
+        .from('images')
+        .upload(fileName, blob, {
+          cacheControl: '3600',
+          upsert: false,
+        });
 
-    if (error) {
-      throw new Error(`Failed to upload image: ${error.message}`);
+      if (error) {
+        console.error('Supabase upload error:', error);
+        throw new Error(`Failed to upload image: ${error.message}`);
+      }
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('images')
+        .getPublicUrl(fileName);
+
+      console.log(`Image uploaded successfully: ${urlData.publicUrl}`);
+      
+      return {
+        url: urlData.publicUrl,
+        path: fileName,
+      };
+      
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      throw fetchError;
     }
-
-    // Get the public URL
-    const { data: urlData } = supabase.storage
-      .from('images')
-      .getPublicUrl(fileName);
-
-    return {
-      url: urlData.publicUrl,
-      path: fileName,
-    };
+    
   } catch (error) {
-    console.error('Error uploading image:', error);
-    throw new Error(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error(`Error uploading image (attempt ${retryCount + 1}):`, error);
+    
+    // Retry logic for network errors
+    if (retryCount < maxRetries && (
+      error instanceof Error && (
+        error.message.includes('Network request failed') ||
+        error.message.includes('fetch') ||
+        error.message.includes('timeout') ||
+        error.message.includes('aborted')
+      )
+    )) {
+      console.log(`Retrying upload in ${(retryCount + 1) * 2} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+      return uploadImageToStorage(imageUri, folder, retryCount + 1);
+    }
+    
+    throw new Error(`Failed to upload image after ${retryCount + 1} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
@@ -59,8 +105,31 @@ export const uploadImagesToStorage = async (
   imageUris: string[],
   folder: string = 'pins'
 ): Promise<UploadedImage[]> => {
-  const uploadPromises = imageUris.map(uri => uploadImageToStorage(uri, folder));
-  return Promise.all(uploadPromises);
+  console.log(`Starting upload of ${imageUris.length} images`);
+  
+  const results: UploadedImage[] = [];
+  const errors: string[] = [];
+  
+  // Upload images sequentially to avoid overwhelming the server
+  for (let i = 0; i < imageUris.length; i++) {
+    try {
+      console.log(`Uploading image ${i + 1}/${imageUris.length}`);
+      const result = await uploadImageToStorage(imageUris[i], folder);
+      results.push(result);
+    } catch (error) {
+      const errorMessage = `Failed to upload image ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      console.error(errorMessage);
+      errors.push(errorMessage);
+    }
+  }
+  
+  if (errors.length > 0) {
+    console.error('Some images failed to upload:', errors);
+    throw new Error(`Failed to upload ${errors.length} out of ${imageUris.length} images: ${errors.join(', ')}`);
+  }
+  
+  console.log(`Successfully uploaded all ${results.length} images`);
+  return results;
 };
 
 /**

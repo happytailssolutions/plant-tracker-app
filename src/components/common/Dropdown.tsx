@@ -58,6 +58,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   };
 
   const handleSelectOption = (optionValue: string) => {
+    console.log('Dropdown: Selecting option:', optionValue);
     onValueChange(optionValue);
     setIsOpen(false);
   };
