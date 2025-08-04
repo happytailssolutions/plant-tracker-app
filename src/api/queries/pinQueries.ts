@@ -132,7 +132,21 @@ export interface Pin {
   status: string;
   isPublic: boolean;
   isActive: boolean;
-  metadata?: object;
+  metadata?: {
+    tags?: string[];
+    photos?: string[];
+    plantingDate?: string;
+    fertilizedDate?: string;
+    pruningDate?: string;
+    origin?: 'seed' | 'grafting';
+    notes?: {
+      entries: Array<{
+        text: string;
+        timestamp: string;
+        userId?: string;
+      }>;
+    };
+  };
   createdAt: string;
   updatedAt: string;
   projectId: string;

@@ -5,4 +5,7 @@ export { default as ImagePicker } from './ImagePicker';
 export { default as Dropdown } from './Dropdown';
 export { TagBubble, TagBubbleList } from './TagBubble';
 export { TagInput } from './TagInput';
-export { TagSelectionModal } from './TagSelectionModal'; 
+export { TagSelectionModal } from './TagSelectionModal';
+export { DatePicker } from './DatePicker';
+export { PhotoGallery } from './PhotoGallery';
+export { NotesHistory } from './NotesHistory'; 
