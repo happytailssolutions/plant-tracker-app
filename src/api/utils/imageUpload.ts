@@ -226,22 +226,14 @@ export const uploadImageToStorage = async (
            
            console.log(`📦 Base64 data read, length: ${base64.length}`);
            
-           // Create a data URL from base64
-           const dataUrl = `data:image/jpeg;base64,${base64}`;
-           
-           // Try to fetch the data URL
-           const dataResponse = await fetch(dataUrl);
-           const dataBlob = await dataResponse.blob();
-           
-           console.log(`📦 Data URL blob created, size: ${dataBlob.size} bytes`);
-           
-           // Upload to Supabase Storage
+           // Try to upload base64 directly to Supabase
            console.log(`🚀 Uploading to Supabase (fallback): ${fileName}`);
            const { error } = await supabase.storage
              .from('images')
-             .upload(fileName, dataBlob, {
+             .upload(fileName, base64, {
                cacheControl: '3600',
                upsert: false,
+               contentType: 'image/jpeg',
              });
 
            if (error) {
