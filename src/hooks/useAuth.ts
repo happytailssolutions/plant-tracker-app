@@ -99,6 +99,10 @@ export const useAuth = () => {
       console.log('useAuth: Constructed user data:', userData);
 
       console.log('useAuth: Storing auth token and user data in SecureStore.');
+      console.log('useAuth: Access token type:', typeof data.session.access_token);
+      console.log('useAuth: Access token length:', data.session.access_token?.length);
+      console.log('useAuth: Access token preview:', data.session.access_token?.substring(0, 20) + '...');
+      
       await SecureStore.setItemAsync(AUTH_TOKEN_KEY, data.session.access_token);
       await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(userData));
       console.log('useAuth: Storage successful.');

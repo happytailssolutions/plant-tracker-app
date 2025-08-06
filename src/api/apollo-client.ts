@@ -16,6 +16,8 @@ const authLink = setContext(async (_, { headers }) => {
   // Asynchronously get the token from the auth store
   const token = useAuthStore.getState().token;
   
+  console.log('🔐 Auth token being sent:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
+  
   // Return the headers to the context so httpLink can read them
   return {
     headers: {

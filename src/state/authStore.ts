@@ -30,12 +30,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthInitialized: false,
   
   // Actions
-  setToken: (token: string, user?: User) => 
-    set((state) => ({
+  setToken: (token: string, user?: User) => {
+    console.log('🔐 Setting auth token:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
+    return set((state) => ({
       token,
       isAuthenticated: true,
       user: user || state.user,
-    })),
+    }));
+  },
     
   clearAuth: () => 
     set({
