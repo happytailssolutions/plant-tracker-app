@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import * as SecureStore from 'expo-secure-store';
 import { useAuthStore } from '../state/authStore';
 import { supabase } from '../api/supabase';
 import Constants from 'expo-constants';
+import { jwtDecode } from 'jwt-decode';
 
 // Initialize Google Sign-In
 GoogleSignin.configure({
@@ -14,6 +15,41 @@ GoogleSignin.configure({
 
 const AUTH_TOKEN_KEY = 'auth_token';
 const USER_DATA_KEY = 'user_data';
+
+// Token validation helper
+const isTokenExpired = (token: string): boolean => {
+  try {
+    const decoded = jwtDecode(token);
+    const currentTime = Math.floor(Date.now() / 1000);
+    return decoded.exp ? decoded.exp < currentTime : true;
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    return true;
+  }
+};
+
+// Token refresh helper
+const refreshToken = async (): Promise<string | null> => {
+  try {
+    console.log('🔄 Attempting to refresh token...');
+    const { data, error } = await supabase.auth.refreshSession();
+    
+    if (error) {
+      console.error('Token refresh failed:', error);
+      return null;
+    }
+    
+    if (data.session?.access_token) {
+      console.log('🔄 Token refreshed successfully');
+      return data.session.access_token;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    return null;
+  }
+};
 
 export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -31,9 +67,27 @@ export const useAuth = () => {
       console.log('useAuth: Got user data from SecureStore:', storedUserData ? 'found' : 'not found');
       
       if (storedToken && storedUserData) {
-        const user = JSON.parse(storedUserData);
-        console.log('useAuth: Restoring session for user:', user.email);
-        setToken(storedToken, user);
+        // Check if token is expired
+        if (isTokenExpired(storedToken)) {
+          console.log('useAuth: Stored token is expired, attempting refresh...');
+          const refreshedToken = await refreshToken();
+          
+          if (refreshedToken) {
+            const user = JSON.parse(storedUserData);
+            console.log('useAuth: Token refreshed, restoring session for user:', user.email);
+            await SecureStore.setItemAsync(AUTH_TOKEN_KEY, refreshedToken);
+            setToken(refreshedToken, user);
+          } else {
+            console.log('useAuth: Token refresh failed, clearing auth...');
+            await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+            await SecureStore.deleteItemAsync(USER_DATA_KEY);
+            clearAuth();
+          }
+        } else {
+          const user = JSON.parse(storedUserData);
+          console.log('useAuth: Token is valid, restoring session for user:', user.email);
+          setToken(storedToken, user);
+        }
       } else {
         console.log('useAuth: No stored token or user data.');
         clearAuth();
@@ -142,10 +196,42 @@ export const useAuth = () => {
     }
   }, [clearAuth]);
 
+  // Function to handle token refresh when needed
+  const handleTokenRefresh = useCallback(async (): Promise<boolean> => {
+    const currentToken = useAuthStore.getState().token;
+    
+    if (!currentToken) {
+      console.log('🔄 No token to refresh');
+      return false;
+    }
+    
+    if (isTokenExpired(currentToken)) {
+      console.log('🔄 Token is expired, refreshing...');
+      const refreshedToken = await refreshToken();
+      
+      if (refreshedToken) {
+        const user = useAuthStore.getState().user;
+        if (user) {
+          await SecureStore.setItemAsync(AUTH_TOKEN_KEY, refreshedToken);
+          setToken(refreshedToken, user);
+          console.log('🔄 Token refreshed and updated');
+          return true;
+        }
+      } else {
+        console.log('🔄 Token refresh failed, signing out...');
+        await signOut();
+        return false;
+      }
+    }
+    
+    return true;
+  }, [setToken, signOut]);
+
   return {
     signInWithGoogle,
     signOut,
     initializeAuth,
+    handleTokenRefresh,
     isLoading,
     error,
     isAuthenticated,

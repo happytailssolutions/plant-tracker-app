@@ -18,20 +18,41 @@ import { ProjectListItem } from '../components/projects';
 import { CreateProjectModal } from '../components/common';
 import { useMapStore } from '../state/mapStore';
 import { testSupabaseConnection, diagnoseBucketIssue, testDirectUpload } from '../api/utils/imageUpload';
+import { useAuth } from '../hooks/useAuth';
 
 export const ProjectsScreen: React.FC = () => {
   const router = useRouter();
   const { selectedProjectId, setSelectedProject } = useMapStore();
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const { handleTokenRefresh } = useAuth();
   
   const { data, loading, error, refetch } = useQuery<MyProjectsQueryResponse>(MY_PROJECTS_QUERY, {
     fetchPolicy: 'cache-and-network',
-    onError: (error) => {
+    onError: async (error) => {
       console.error('🚨 Projects query error:', error);
       console.error('🚨 Error message:', error.message);
       console.error('🚨 Error networkError:', error.networkError);
       console.error('🚨 Error graphQLErrors:', error.graphQLErrors);
+      
+      // Check if it's an authentication error
+      const isAuthError = error.graphQLErrors?.some(
+        graphQLError => graphQLError.extensions?.code === 'UNAUTHENTICATED' || 
+                        graphQLError.message === 'Unauthorized'
+      );
+      
+      if (isAuthError) {
+        console.log('🔄 Authentication error detected, attempting token refresh...');
+        const refreshSuccess = await handleTokenRefresh();
+        
+        if (refreshSuccess) {
+          console.log('🔄 Token refreshed, retrying query...');
+          refetch();
+        } else {
+          console.log('🔄 Token refresh failed, user needs to re-authenticate');
+          // You could redirect to login here if needed
+        }
+      }
     },
     onCompleted: (data) => {
       console.log('✅ Projects query completed:', data);
