@@ -4,8 +4,11 @@ import { useAuthStore } from '../state/authStore';
 import Constants from 'expo-constants';
 
 // Create the http link pointing to your backend's GraphQL endpoint
+const graphqlUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/graphql';
+console.log('🔗 Apollo Client connecting to:', graphqlUrl);
+
 const httpLink = createHttpLink({
-  uri: Constants.expoConfig?.extra?.EXPO_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/graphql',
+  uri: graphqlUrl,
 });
 
 // Create the auth link that adds the JWT token to requests
@@ -33,6 +36,15 @@ export const apolloClient = new ApolloClient({
     query: {
       errorPolicy: 'all',
     },
+  },
+  // Add error logging
+  onError: ({ networkError, graphQLErrors }) => {
+    if (networkError) {
+      console.error('🚨 Apollo Network Error:', networkError);
+    }
+    if (graphQLErrors) {
+      console.error('🚨 Apollo GraphQL Errors:', graphQLErrors);
+    }
   },
 });
 

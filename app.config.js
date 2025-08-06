@@ -14,6 +14,7 @@ console.log('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID:', process.env.EXPO_PUBLIC_GOOGLE_
 console.log('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY:', process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ? 'SET' : 'NOT SET');
 console.log('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY length:', process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.length || 0);
 console.log('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY starts with:', process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.substring(0, 10) || 'N/A');
+console.log('EXPO_PUBLIC_GRAPHQL_URL:', process.env.EXPO_PUBLIC_GRAPHQL_URL || 'NOT SET');
 
 export default {
   expo: {

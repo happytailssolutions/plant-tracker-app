@@ -27,6 +27,15 @@ export const ProjectsScreen: React.FC = () => {
   
   const { data, loading, error, refetch } = useQuery<MyProjectsQueryResponse>(MY_PROJECTS_QUERY, {
     fetchPolicy: 'cache-and-network',
+    onError: (error) => {
+      console.error('🚨 Projects query error:', error);
+      console.error('🚨 Error message:', error.message);
+      console.error('🚨 Error networkError:', error.networkError);
+      console.error('🚨 Error graphQLErrors:', error.graphQLErrors);
+    },
+    onCompleted: (data) => {
+      console.log('✅ Projects query completed:', data);
+    },
   });
 
   const handleProjectPress = (project: Project) => {
