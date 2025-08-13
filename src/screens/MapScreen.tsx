@@ -260,7 +260,14 @@ export const MapScreen: React.FC = () => {
 
   // Center map on project pins
   const centerMapOnProjectPins = useCallback(async (pins: Pin[]) => {
+    console.log('🎯 centerMapOnProjectPins called with:', {
+      pinsCount: pins.length,
+      selectedTags,
+      selectedTagsLength: selectedTags.length
+    });
+    
     if (!mapRef.current || pins.length === 0) {
+      console.log('🎯 No pins or mapRef, centering on user location');
       // No pins, center on user location
       setAutoCenterMode('user-location');
       return;
@@ -269,13 +276,21 @@ export const MapScreen: React.FC = () => {
     // If there's a tag filter, use the filtered pins for centering
     const pinsToCenter = selectedTags.length > 0 ? filterPinsByTags(pins, selectedTags) : pins;
     
+    console.log('🎯 Filtered pins:', {
+      originalPinsCount: pins.length,
+      filteredPinsCount: pinsToCenter.length,
+      selectedTags
+    });
+    
     if (pinsToCenter.length === 0) {
+      console.log('🎯 No pins match tag filter, centering on user location');
       // No pins match the tag filter, center on user location
       setAutoCenterMode('user-location');
       return;
     }
 
     const newRegion = calculateBoundsFromPins(pinsToCenter);
+    console.log('🎯 Centering on pins:', { newRegion, pinsCount: pinsToCenter.length });
     
     if (validateRegion(newRegion)) {
       setRegion(newRegion);
@@ -321,7 +336,7 @@ export const MapScreen: React.FC = () => {
     } else if (autoCenterMode === 'user-location') {
       centerMapOnUserLocation();
     }
-  }, [isCentering, autoCenterMode, projectPinsData, centerMapOnProjectPins, centerMapOnUserLocation]);
+  }, [isCentering, autoCenterMode, projectPinsData, centerMapOnProjectPins, centerMapOnUserLocation, selectedTags]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
