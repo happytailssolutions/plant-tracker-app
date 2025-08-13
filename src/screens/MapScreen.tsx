@@ -20,6 +20,11 @@ const DEBOUNCE_DELAY = 500;
 
 export const MapScreen: React.FC = () => {
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
+  
+  // Debug region changes
+  useEffect(() => {
+    console.log('🗺️ Region state changed:', region);
+  }, [region]);
   const [isPinEditorVisible, setIsPinEditorVisible] = useState(false);
   const [mapBounds, setMapBounds] = useState<MapBounds>({
     north: region.latitude + region.latitudeDelta / 2,
@@ -293,10 +298,25 @@ export const MapScreen: React.FC = () => {
     console.log('🎯 Centering on pins:', { newRegion, pinsCount: pinsToCenter.length });
     
     if (validateRegion(newRegion)) {
-      setRegion(newRegion);
-      if (mapRef.current) {
-        mapRef.current.animateToRegion(newRegion, 1000);
-      }
+      // For single pins, use a more reasonable zoom level
+      const adjustedRegion = pinsToCenter.length === 1 ? {
+        ...newRegion,
+        latitudeDelta: 0.05, // Zoom out more to see the pin clearly
+        longitudeDelta: 0.05,
+      } : newRegion;
+      
+      console.log('🎯 Adjusted region:', adjustedRegion);
+      
+      // Set the region state first
+      setRegion(adjustedRegion);
+      
+      // Then animate to the region with a delay to ensure mapRef is ready
+      setTimeout(() => {
+        if (mapRef.current) {
+          console.log('🎯 Animating to region...');
+          mapRef.current.animateToRegion(adjustedRegion, 1500);
+        }
+      }, 100);
     }
     
     setCentering(false);
