@@ -48,6 +48,7 @@ export const MapScreen: React.FC = () => {
   const addSelectedTag = useMapStore((state) => state.addSelectedTag);
   const removeSelectedTag = useMapStore((state) => state.removeSelectedTag);
   const clearSelectedTags = useMapStore((state) => state.clearSelectedTags);
+  const setTagAndNavigate = useMapStore((state) => state.setTagAndNavigate);
   const setAutoCenterMode = useMapStore((state) => state.setAutoCenterMode);
   const setCentering = useMapStore((state) => state.setCentering);
   const enterPreviewMode = useMapStore((state) => state.enterPreviewMode);
@@ -541,7 +542,7 @@ export const MapScreen: React.FC = () => {
         visible={isTagSelectionOpen}
         availableTags={availableTags}
         selectedTags={selectedTags}
-        onTagSelect={addSelectedTag}
+        onTagSelect={setTagAndNavigate}
         onClose={closeTagSelection}
       />
     </View>
