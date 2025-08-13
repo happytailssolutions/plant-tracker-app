@@ -86,16 +86,27 @@ export const useMapStore = create<MapState>((set, get) => ({
     set((state) => ({
       selectedTags: state.selectedTags.includes(tag) 
         ? state.selectedTags 
-        : [...state.selectedTags, tag]
+        : [...state.selectedTags, tag],
+      selectedPinId: null, // Clear selected pin when filtering by tag
+      autoCenterMode: 'project-pins',
+      isCentering: true,
     })),
     
   removeSelectedTag: (tag: string) => 
     set((state) => ({
-      selectedTags: state.selectedTags.filter(t => t !== tag)
+      selectedTags: state.selectedTags.filter(t => t !== tag),
+      selectedPinId: null, // Clear selected pin when filtering changes
+      autoCenterMode: 'project-pins',
+      isCentering: true,
     })),
     
   clearSelectedTags: () => 
-    set({ selectedTags: [] }),
+    set({ 
+      selectedTags: [],
+      selectedPinId: null, // Clear selected pin when clearing filters
+      autoCenterMode: 'project-pins',
+      isCentering: true,
+    }),
     
   setRegion: (region: Region) => 
     set({ region }),

@@ -450,8 +450,8 @@ export const MapScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Tag filter indicator */}
-      {selectedTags.length > 0 && (
+      {/* Tag filter bar - always visible */}
+      {selectedProjectId && (
         <View style={styles.tagFilterContainer}>
           <View style={styles.tagFilterBadge}>
             {selectedTags.map((tag, index) => (
@@ -469,12 +469,14 @@ export const MapScreen: React.FC = () => {
             >
               <Text style={styles.addTagButtonText}>Add Tag</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.clearFilterButton}
-              onPress={clearSelectedTags}
-            >
-              <Text style={styles.clearFilterText}>Clear</Text>
-            </TouchableOpacity>
+            {selectedTags.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearFilterButton}
+                onPress={clearSelectedTags}
+              >
+                <Text style={styles.clearFilterText}>Clear</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       )}
@@ -603,20 +605,13 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   tagFilterBadge: {
-    backgroundColor: colors.background.white,
+    backgroundColor: 'transparent',
     borderRadius: spacing.sm,
     padding: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: colors.functional.neutral,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
   },
   addTagButton: {
     backgroundColor: colors.primary.darkGreen,
