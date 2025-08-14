@@ -478,15 +478,15 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
               />
             </View>
 
-            {/* Project Selection */}
-            <Dropdown
-              label="Project *"
-              value={formData.projectId}
-              options={projects.map(project => ({ value: project.id, label: project.name }))}
-              onValueChange={(value) => updateField('projectId', value)}
-              placeholder="Select Project"
-              error={errors.projectId}
-            />
+            {/* Project Display (Read-only) */}
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>Project *</Text>
+              <View style={[styles.input, styles.readOnlyInput]}>
+                <Text style={styles.readOnlyText}>
+                  {projects.find(p => p.id === formData.projectId)?.name || 'No project selected'}
+                </Text>
+              </View>
+            </View>
 
             {/* Pin Type */}
             <Dropdown
@@ -694,6 +694,14 @@ const styles = StyleSheet.create({
   },
   input: {
     ...components.input,
+  },
+  readOnlyInput: {
+    backgroundColor: colors.background.light,
+    borderColor: colors.functional.neutral,
+  },
+  readOnlyText: {
+    ...typography.textStyles.body,
+    color: colors.functional.darkGray,
   },
   textArea: {
     height: 100,

@@ -24,6 +24,8 @@ export const MapScreen: React.FC = () => {
 
   const [isPinEditorVisible, setIsPinEditorVisible] = useState(false);
   const [showPinCreationControls, setShowPinCreationControls] = useState(false);
+  const [selectedPinTypeForEditor, setSelectedPinTypeForEditor] = useState<string>('tree');
+  const [selectedStatusForEditor, setSelectedStatusForEditor] = useState<string>('Growing');
   const [mapBounds, setMapBounds] = useState<MapBounds>({
     north: region.latitude + region.latitudeDelta / 2,
     south: region.latitude - region.latitudeDelta / 2,
@@ -202,6 +204,10 @@ export const MapScreen: React.FC = () => {
     console.log('Quick add using project ID:', selectedProjectId);
     
     try {
+      // Find the selected project to inherit its isPublic setting
+      const selectedProject = projectsData.myProjects.find(p => p.id === selectedProjectId);
+      const isPublic = selectedProject?.isPublic || false;
+
       // Create pin with minimal data
       const pinData = {
         name: `New ${pinType}`,
@@ -209,7 +215,7 @@ export const MapScreen: React.FC = () => {
         pinType,
         status: 'active',
         projectId: selectedProjectId,
-        isPublic: false,
+        isPublic: isPublic, // Inherit from project settings
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
       };
@@ -256,6 +262,8 @@ export const MapScreen: React.FC = () => {
   // Handle pin creation confirm - opens full editor
   const handlePinCreationConfirm = useCallback((coordinates: { latitude: number; longitude: number }, pinType: string, status: string) => {
     setLastUsedPinType(pinType);
+    setSelectedPinTypeForEditor(pinType);
+    setSelectedStatusForEditor(status);
     setShowPinCreationControls(false);
     setIsPinEditorVisible(true);
   }, [setLastUsedPinType]);
@@ -273,6 +281,10 @@ export const MapScreen: React.FC = () => {
     }
 
     try {
+      // Find the selected project to inherit its isPublic setting
+      const selectedProject = projectsData.myProjects.find(p => p.id === selectedProjectId);
+      const isPublic = selectedProject?.isPublic || false;
+
       // Create pin with minimal data
       const pinData = {
         name: `New ${pinType}`,
@@ -280,7 +292,7 @@ export const MapScreen: React.FC = () => {
         pinType,
         status,
         projectId: selectedProjectId,
-        isPublic: false, // Will be updated to inherit from project in Phase 3
+        isPublic: isPublic, // Inherit from project settings
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
       };
@@ -604,8 +616,10 @@ export const MapScreen: React.FC = () => {
          latitude={region.latitude}
          longitude={region.longitude}
          initialData={{
-            pinType: lastUsedPinType,
-            projectId: selectedProjectId || undefined
+            pinType: selectedPinTypeForEditor,
+            status: selectedStatusForEditor,
+            projectId: selectedProjectId || undefined,
+            isPublic: projectsData?.myProjects?.find(p => p.id === selectedProjectId)?.isPublic || false
           }}
        />
 
