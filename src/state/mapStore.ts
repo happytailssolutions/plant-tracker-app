@@ -4,10 +4,7 @@ import { Region } from 'react-native-maps';
 type AutoCenterMode = 'project-pins' | 'user-location' | null;
 type MapType = 'standard' | 'satellite' | 'hybrid' | 'terrain';
 
-interface PreviewPinCoordinates {
-  latitude: number;
-  longitude: number;
-}
+
 
 interface MapState {
   // State
@@ -23,9 +20,8 @@ interface MapState {
   isTagSelectionOpen: boolean;
   availableTags: string[];
   
-  // Preview Pin State
-  previewPinMode: boolean;
-  previewPinCoordinates: PreviewPinCoordinates | null;
+  // Pin Creation State
+  pinCreationMode: boolean;
   lastUsedPinType: string;
   
   // Actions
@@ -48,12 +44,11 @@ interface MapState {
   closeTagSelection: () => void;
   setAvailableTags: (tags: string[]) => void;
   
-  // Preview Pin Actions
-  setPreviewPinMode: (active: boolean) => void;
-  setPreviewPinCoordinates: (coordinates: PreviewPinCoordinates) => void;
+  // Pin Creation Actions
+  setPinCreationMode: (active: boolean) => void;
   setLastUsedPinType: (pinType: string) => void;
-  enterPreviewMode: (coordinates: PreviewPinCoordinates) => void;
-  exitPreviewMode: () => void;
+  enterPinCreation: () => void;
+  exitPinCreation: () => void;
 }
 
 export const useMapStore = create<MapState>((set, get) => ({
@@ -70,10 +65,9 @@ export const useMapStore = create<MapState>((set, get) => ({
   isTagSelectionOpen: false,
   availableTags: [],
   
-  // Preview Pin Initial State
-  previewPinMode: false,
-  previewPinCoordinates: null,
-  lastUsedPinType: 'plant',
+  // Pin Creation Initial State
+  pinCreationMode: false,
+  lastUsedPinType: 'tree',
   
   // Actions
   setSelectedProject: (projectId: string | null) => 
@@ -152,9 +146,8 @@ export const useMapStore = create<MapState>((set, get) => ({
       mapType: 'satellite',
       isTagSelectionOpen: false,
       availableTags: [],
-      previewPinMode: false,
-      previewPinCoordinates: null,
-      lastUsedPinType: 'plant',
+      pinCreationMode: false,
+      lastUsedPinType: 'tree',
     }),
     
   // Tag Selection Modal Actions
@@ -167,26 +160,21 @@ export const useMapStore = create<MapState>((set, get) => ({
   setAvailableTags: (tags: string[]) => 
     set({ availableTags: tags }),
     
-  // Preview Pin Actions
-  setPreviewPinMode: (active: boolean) => 
-    set({ previewPinMode: active }),
-    
-  setPreviewPinCoordinates: (coordinates: PreviewPinCoordinates) => 
-    set({ previewPinCoordinates: coordinates }),
+  // Pin Creation Actions
+  setPinCreationMode: (active: boolean) => 
+    set({ pinCreationMode: active }),
     
   setLastUsedPinType: (pinType: string) => 
     set({ lastUsedPinType: pinType }),
     
-  enterPreviewMode: (coordinates: PreviewPinCoordinates) => 
+  enterPinCreation: () => 
     set({ 
-      previewPinMode: true, 
-      previewPinCoordinates: coordinates,
+      pinCreationMode: true,
       selectedPinId: null, // Clear any selected pin
     }),
     
-  exitPreviewMode: () => 
+  exitPinCreation: () => 
     set({ 
-      previewPinMode: false, 
-      previewPinCoordinates: null 
+      pinCreationMode: false
     }),
 })); 

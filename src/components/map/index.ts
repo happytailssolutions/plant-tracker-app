@@ -1,4 +1,5 @@
 export { MapMarker } from './MapMarker';
 export { PreviewPinMarker } from './PreviewPinMarker';
 export { PreviewPinControls } from './PreviewPinControls';
-export { LayerSwitcher } from './LayerSwitcher'; 
+export { LayerSwitcher } from './LayerSwitcher';
+export { CenterPinIcon } from './CenterPinIcon'; 
