@@ -29,8 +29,8 @@ export const calculateBoundsFromPins = (pins: Pin[]): Region => {
     return {
       latitude: pin.latitude,
       longitude: pin.longitude,
-      latitudeDelta: 0.01, // Close zoom for single pin
-      longitudeDelta: 0.01,
+      latitudeDelta: ZOOM_LEVELS.MIN, // Maximum zoom for single pin
+      longitudeDelta: ZOOM_LEVELS.MIN,
     };
   }
 
@@ -51,9 +51,9 @@ export const calculateBoundsFromPins = (pins: Pin[]): Region => {
   const latDelta = (maxLat - minLat) * 1.2; // 20% padding
   const lngDelta = (maxLng - minLng) * 1.2; // 20% padding
 
-  // Ensure minimum zoom level
-  const finalLatDelta = Math.max(latDelta, 0.01);
-  const finalLngDelta = Math.max(lngDelta, 0.01);
+  // Ensure minimum zoom level (maximum zoom in)
+  const finalLatDelta = Math.max(latDelta, ZOOM_LEVELS.MIN);
+  const finalLngDelta = Math.max(lngDelta, ZOOM_LEVELS.MIN);
 
   return {
     latitude: centerLat,
@@ -72,7 +72,7 @@ export const calculateOptimalZoom = (pins: Pin[]): number => {
   }
 
   if (pins.length === 1) {
-    return 0.01; // Close zoom for single pin
+    return ZOOM_LEVELS.MIN; // Maximum zoom for single pin
   }
 
   // Calculate the spread of pins

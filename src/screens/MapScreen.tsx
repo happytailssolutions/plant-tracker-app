@@ -364,12 +364,8 @@ export const MapScreen: React.FC = () => {
     const newRegion = calculateBoundsFromPins(pinsToCenter);
     
     if (validateRegion(newRegion)) {
-      // For single pins, use a more reasonable zoom level
-      const adjustedRegion = pinsToCenter.length === 1 ? {
-        ...newRegion,
-        latitudeDelta: 0.05, // Zoom out more to see the pin clearly
-        longitudeDelta: 0.05,
-      } : newRegion;
+      // Use the calculated region as-is for maximum zoom while showing all pins
+      const adjustedRegion = newRegion;
       
       // Set the region state first
       setRegion(adjustedRegion);
@@ -391,7 +387,8 @@ export const MapScreen: React.FC = () => {
     const location = await getCurrentLocation();
     
     if (location) {
-      const newRegion = createRegionFromCoordinates(location.latitude, location.longitude);
+      // Use maximum zoom level for user location (very close zoom)
+      const newRegion = createRegionFromCoordinates(location.latitude, location.longitude, 0.001);
       setRegion(newRegion);
       if (mapRef.current) {
         mapRef.current.animateToRegion(newRegion, 1000);
