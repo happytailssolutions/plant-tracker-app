@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import { PINS_QUERY, PINS_BY_PROJECT_QUERY, PinsInBoundsQueryResponse, PinsByProjectQueryResponse, MapBounds, Pin } from '../api/queries/pinQueries';
 import { MY_PROJECTS_QUERY, MyProjectsQueryResponse } from '../api/queries/projectQueries';
 import { CREATE_PIN_MUTATION, CreatePinMutationResponse, CreatePinMutationVariables } from '../api/mutations/pinMutations';
-import { MapMarker, PreviewPinMarker, PreviewPinControls, LayerSwitcher, CenterPinIcon } from '../components/map';
+import { MapMarker, PreviewPinMarker, PreviewPinControls, LayerSwitcher, CenterPinIcon, PinCreationControls } from '../components/map';
 import { PinEditorForm, PinDetailSheet } from '../components/pins';
 import { TagBubble, TagSelectionModal } from '../components/common';
 import { colors, spacing, components, typography } from '../styles/theme';
@@ -23,6 +23,7 @@ export const MapScreen: React.FC = () => {
   
 
   const [isPinEditorVisible, setIsPinEditorVisible] = useState(false);
+  const [showPinCreationControls, setShowPinCreationControls] = useState(false);
   const [mapBounds, setMapBounds] = useState<MapBounds>({
     north: region.latitude + region.latitudeDelta / 2,
     south: region.latitude - region.latitudeDelta / 2,
@@ -175,10 +176,8 @@ export const MapScreen: React.FC = () => {
 
   // Handle ADD button press to show pin creation controls
   const handleAddPin = useCallback(() => {
-    // This will show the PinCreationControls with current map center
-    // The controls will handle the actual pin creation process
-    // For now, we'll keep the existing preview controls until we create the new ones
-    setIsPinEditorVisible(true);
+    // Show the PinCreationControls with current map center
+    setShowPinCreationControls(true);
   }, []);
 
   // Handle preview pin confirmation (temporary - will be replaced)
@@ -250,8 +249,69 @@ export const MapScreen: React.FC = () => {
 
   // Handle pin creation cancel
   const handlePinCreationCancel = useCallback(() => {
+    setShowPinCreationControls(false);
     exitPinCreation();
   }, [exitPinCreation]);
+
+  // Handle pin creation confirm - opens full editor
+  const handlePinCreationConfirm = useCallback((coordinates: { latitude: number; longitude: number }, pinType: string, status: string) => {
+    setLastUsedPinType(pinType);
+    setShowPinCreationControls(false);
+    setIsPinEditorVisible(true);
+  }, [setLastUsedPinType]);
+
+  // Handle pin creation quick add
+  const handlePinCreationQuickAdd = useCallback(async (coordinates: { latitude: number; longitude: number }, pinType: string, status: string) => {
+    if (!selectedProjectId) {
+      Alert.alert('No Project Selected', 'Please select a project first before adding pins.');
+      return;
+    }
+
+    if (!projectsData?.myProjects || projectsData.myProjects.length === 0) {
+      Alert.alert('No Projects', 'You need to create a project first before adding pins.');
+      return;
+    }
+
+    try {
+      // Create pin with minimal data
+      const pinData = {
+        name: `New ${pinType}`,
+        description: `Quickly added ${pinType}`,
+        pinType,
+        status,
+        projectId: selectedProjectId,
+        isPublic: false, // Will be updated to inherit from project in Phase 3
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+      };
+
+      // Call the create pin mutation
+      const result = await createPin({
+        variables: {
+          input: pinData,
+        },
+      });
+
+      // Small delay to ensure database transaction is complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Explicitly refetch pins to ensure the new pin appears on the map
+      await refetch({
+        mapBounds: {
+          ...mapBounds,
+          projectId: selectedProjectId,
+        },
+      });
+
+      Alert.alert('Success', `Quickly added ${pinType} at the selected location!`);
+      setLastUsedPinType(pinType);
+      setShowPinCreationControls(false);
+      exitPinCreation();
+    } catch (error) {
+      console.error('Quick add pin error:', error);
+      Alert.alert('Error', 'Failed to create pin. Please try again.');
+    }
+  }, [selectedProjectId, projectsData, setLastUsedPinType, exitPinCreation, createPin, refetch, mapBounds]);
 
   // Handle pin editor close
   const handlePinEditorClose = useCallback(() => {
@@ -520,14 +580,18 @@ export const MapScreen: React.FC = () => {
       {/* Center Pin Icon - shows when in creation mode */}
       <CenterPinIcon visible={pinCreationMode} />
 
-      {/* Preview Pin Controls - Temporarily disabled, will be replaced with PinCreationControls */}
-      {false && (
-        <PreviewPinControls
-          coordinates={{latitude: 0, longitude: 0}}
-          onConfirm={handlePreviewPinConfirm}
-          onQuickAdd={handleQuickAddPin}
-          onCancel={() => {}}
+      {/* Pin Creation Controls */}
+      {showPinCreationControls && (
+        <PinCreationControls
+          coordinates={{
+            latitude: region.latitude,
+            longitude: region.longitude
+          }}
+          onConfirm={handlePinCreationConfirm}
+          onQuickAdd={handlePinCreationQuickAdd}
+          onCancel={handlePinCreationCancel}
           initialPinType={lastUsedPinType}
+          initialStatus="Growing"
         />
       )}
 

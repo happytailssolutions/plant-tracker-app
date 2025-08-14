@@ -41,6 +41,7 @@ const STATUS_OPTIONS = [
   { label: 'Flowering', value: 'Flowering' },
   { label: 'Fruiting', value: 'Fruiting' },
   { label: 'Seedling', value: 'Seedling' },
+  { label: 'Deciduous', value: 'Deciduous' },
 ];
 
 const ORIGIN_OPTIONS = [
