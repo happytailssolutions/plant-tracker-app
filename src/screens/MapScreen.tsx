@@ -24,8 +24,9 @@ export const MapScreen: React.FC = () => {
 
   const [isPinEditorVisible, setIsPinEditorVisible] = useState(false);
   const [showPinCreationControls, setShowPinCreationControls] = useState(false);
-  const [selectedPinTypeForEditor, setSelectedPinTypeForEditor] = useState<string>('tree');
+  const [selectedPinTypeForEditor, setSelectedPinTypeForEditor] = useState<string>('Tree');
   const [selectedStatusForEditor, setSelectedStatusForEditor] = useState<string>('Growing');
+  const [frozenCoordinates, setFrozenCoordinates] = useState<{latitude: number; longitude: number} | null>(null);
   const [mapBounds, setMapBounds] = useState<MapBounds>({
     north: region.latitude + region.latitudeDelta / 2,
     south: region.latitude - region.latitudeDelta / 2,
@@ -165,9 +166,13 @@ export const MapScreen: React.FC = () => {
 
   // Handle ADD button press to show pin creation controls
   const handleAddPin = useCallback(() => {
-    // Show the PinCreationControls with current map center
+    // Freeze the current coordinates and show the PinCreationControls
+    setFrozenCoordinates({
+      latitude: region.latitude,
+      longitude: region.longitude
+    });
     setShowPinCreationControls(true);
-  }, []);
+  }, [region]);
 
 
 
@@ -238,6 +243,7 @@ export const MapScreen: React.FC = () => {
   // Handle pin creation cancel
   const handlePinCreationCancel = useCallback(() => {
     setShowPinCreationControls(false);
+    setFrozenCoordinates(null);
     exitPinCreation();
   }, [exitPinCreation]);
 
@@ -247,6 +253,7 @@ export const MapScreen: React.FC = () => {
     setSelectedPinTypeForEditor(pinType);
     setSelectedStatusForEditor(status);
     setShowPinCreationControls(false);
+    setFrozenCoordinates(null);
     setIsPinEditorVisible(true);
   }, [setLastUsedPinType]);
 
@@ -300,6 +307,7 @@ export const MapScreen: React.FC = () => {
       Alert.alert('Success', `Quickly added ${pinType} at the selected location!`);
       setLastUsedPinType(pinType);
       setShowPinCreationControls(false);
+      setFrozenCoordinates(null);
       exitPinCreation();
     } catch (error) {
       console.error('Quick add pin error:', error);
@@ -310,6 +318,7 @@ export const MapScreen: React.FC = () => {
   // Handle pin editor close
   const handlePinEditorClose = useCallback(() => {
     setIsPinEditorVisible(false);
+    setFrozenCoordinates(null);
     exitPinCreation(); // Exit creation mode when closing editor
   }, [exitPinCreation]);
 
@@ -462,11 +471,15 @@ export const MapScreen: React.FC = () => {
         ref={mapRef}
         style={styles.map}
         region={region}
-        onRegionChangeComplete={handleRegionChangeComplete}
-        onPress={pinCreationMode ? (event) => {
+        onRegionChangeComplete={showPinCreationControls ? undefined : handleRegionChangeComplete}
+        onPress={pinCreationMode && !showPinCreationControls ? (event) => {
           // In creation mode, map taps are allowed for repositioning
           // The center pin icon shows the selected location
         } : undefined}
+        scrollEnabled={!showPinCreationControls}
+        zoomEnabled={!showPinCreationControls}
+        rotateEnabled={!showPinCreationControls}
+        pitchEnabled={!showPinCreationControls}
         showsUserLocation={true}
         showsMyLocationButton={true}
         showsCompass={true}
@@ -562,12 +575,9 @@ export const MapScreen: React.FC = () => {
       <CenterPinIcon visible={pinCreationMode} />
 
       {/* Pin Creation Controls */}
-      {showPinCreationControls && (
+      {showPinCreationControls && frozenCoordinates && (
         <PinCreationControls
-          coordinates={{
-            latitude: region.latitude,
-            longitude: region.longitude
-          }}
+          coordinates={frozenCoordinates}
           onConfirm={handlePinCreationConfirm}
           onQuickAdd={handlePinCreationQuickAdd}
           onCancel={handlePinCreationCancel}

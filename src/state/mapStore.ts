@@ -67,7 +67,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   
   // Pin Creation Initial State
   pinCreationMode: false,
-  lastUsedPinType: 'tree',
+  lastUsedPinType: 'Tree',
   
   // Actions
   setSelectedProject: (projectId: string | null) => 
@@ -147,7 +147,7 @@ export const useMapStore = create<MapState>((set, get) => ({
       isTagSelectionOpen: false,
       availableTags: [],
       pinCreationMode: false,
-      lastUsedPinType: 'tree',
+      lastUsedPinType: 'Tree',
     }),
     
   // Tag Selection Modal Actions

@@ -19,10 +19,10 @@ interface PinCreationControlsProps {
 }
 
 const PIN_TYPES = [
-  { label: 'Tree', value: 'tree' },
-  { label: 'Plant', value: 'plant' },
-  { label: 'Seedling', value: 'seedling' },
-  { label: 'Flower', value: 'flower' },
+  { label: 'Tree', value: 'Tree' },
+  { label: 'Plant', value: 'Plant' },
+  { label: 'Seedling', value: 'Seedling' },
+  { label: 'Flower', value: 'Flower' },
 ];
 
 const STATUS_OPTIONS = [
@@ -38,25 +38,15 @@ export const PinCreationControls: React.FC<PinCreationControlsProps> = ({
   onConfirm,
   onQuickAdd,
   onCancel,
-  initialPinType = 'tree',
+  initialPinType = 'Tree',
   initialStatus = 'Growing',
 }) => {
   const [selectedPinType, setSelectedPinType] = useState(initialPinType);
   const [selectedStatus, setSelectedStatus] = useState(initialStatus);
 
   const handleConfirm = () => {
-    Alert.alert(
-      'Confirm Pin Location',
-      `Add a new ${selectedPinType} at this location?\n\nLatitude: ${coordinates.latitude.toFixed(6)}\nLongitude: ${coordinates.longitude.toFixed(6)}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Add Pin', 
-          style: 'default',
-          onPress: () => onConfirm(coordinates, selectedPinType, selectedStatus)
-        },
-      ]
-    );
+    // Directly call onConfirm without showing confirmation dialog
+    onConfirm(coordinates, selectedPinType, selectedStatus);
   };
 
   const handleQuickAdd = () => {

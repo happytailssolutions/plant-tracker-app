@@ -15,7 +15,7 @@ export const CenterPinIcon: React.FC<CenterPinIconProps> = ({ visible }) => {
       <Ionicons 
         name="location" 
         size={24} 
-        color={colors.primary.darkGreen} 
+        color={colors.functional.error} 
         style={styles.icon}
       />
     </View>
