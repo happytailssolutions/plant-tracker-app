@@ -1,6 +1,7 @@
 export { MapMarker } from './MapMarker';
-export { PreviewPinMarker } from './PreviewPinMarker';
-export { PreviewPinControls } from './PreviewPinControls';
 export { LayerSwitcher } from './LayerSwitcher';
 export { CenterPinIcon } from './CenterPinIcon';
-export { PinCreationControls } from './PinCreationControls'; 
+export { PinCreationControls } from './PinCreationControls';
+// Legacy components - kept for potential future use
+export { PreviewPinMarker } from './PreviewPinMarker';
+export { PreviewPinControls } from './PreviewPinControls'; 

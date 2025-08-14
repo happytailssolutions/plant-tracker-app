@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import { PINS_QUERY, PINS_BY_PROJECT_QUERY, PinsInBoundsQueryResponse, PinsByProjectQueryResponse, MapBounds, Pin } from '../api/queries/pinQueries';
 import { MY_PROJECTS_QUERY, MyProjectsQueryResponse } from '../api/queries/projectQueries';
 import { CREATE_PIN_MUTATION, CreatePinMutationResponse, CreatePinMutationVariables } from '../api/mutations/pinMutations';
-import { MapMarker, PreviewPinMarker, PreviewPinControls, LayerSwitcher, CenterPinIcon, PinCreationControls } from '../components/map';
+import { MapMarker, LayerSwitcher, CenterPinIcon, PinCreationControls } from '../components/map';
 import { PinEditorForm, PinDetailSheet } from '../components/pins';
 import { TagBubble, TagSelectionModal } from '../components/common';
 import { colors, spacing, components, typography } from '../styles/theme';
@@ -182,14 +182,9 @@ export const MapScreen: React.FC = () => {
     setShowPinCreationControls(true);
   }, []);
 
-  // Handle preview pin confirmation (temporary - will be replaced)
-  const handlePreviewPinConfirm = useCallback((coordinates: { latitude: number; longitude: number }, pinType: string) => {
-    setLastUsedPinType(pinType);
-    exitPinCreation();
-    setIsPinEditorVisible(true);
-  }, [setLastUsedPinType, exitPinCreation]);
 
-  // Handle quick add pin
+
+  // Handle quick add pin - UNUSED, will be removed
   const handleQuickAddPin = useCallback(async (coordinates: { latitude: number; longitude: number }, pinType: string) => {
     if (!selectedProjectId) {
       Alert.alert('No Project Selected', 'Please select a project first before adding pins.');
@@ -506,13 +501,7 @@ export const MapScreen: React.FC = () => {
           />
         ))}
         
-        {/* Preview Pin Marker */}
-        {previewPinMode && previewPinCoordinates && (
-          <PreviewPinMarker
-            coordinates={previewPinCoordinates}
-            pinType={lastUsedPinType}
-          />
-        )}
+
       </MapView>
 
       {/* Loading indicator */}
