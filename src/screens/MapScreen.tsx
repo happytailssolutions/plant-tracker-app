@@ -21,10 +21,7 @@ const DEBOUNCE_DELAY = 500;
 export const MapScreen: React.FC = () => {
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   
-  // Debug region changes
-  useEffect(() => {
-    console.log('🗺️ Region state changed:', region);
-  }, [region]);
+
   const [isPinEditorVisible, setIsPinEditorVisible] = useState(false);
   const [mapBounds, setMapBounds] = useState<MapBounds>({
     north: region.latitude + region.latitudeDelta / 2,
@@ -265,14 +262,7 @@ export const MapScreen: React.FC = () => {
 
   // Center map on project pins
   const centerMapOnProjectPins = useCallback(async (pins: Pin[]) => {
-    console.log('🎯 centerMapOnProjectPins called with:', {
-      pinsCount: pins.length,
-      selectedTags,
-      selectedTagsLength: selectedTags.length
-    });
-    
     if (!mapRef.current || pins.length === 0) {
-      console.log('🎯 No pins or mapRef, centering on user location');
       // No pins, center on user location
       setAutoCenterMode('user-location');
       return;
@@ -281,21 +271,13 @@ export const MapScreen: React.FC = () => {
     // If there's a tag filter, use the filtered pins for centering
     const pinsToCenter = selectedTags.length > 0 ? filterPinsByTags(pins, selectedTags) : pins;
     
-    console.log('🎯 Filtered pins:', {
-      originalPinsCount: pins.length,
-      filteredPinsCount: pinsToCenter.length,
-      selectedTags
-    });
-    
     if (pinsToCenter.length === 0) {
-      console.log('🎯 No pins match tag filter, centering on user location');
       // No pins match the tag filter, center on user location
       setAutoCenterMode('user-location');
       return;
     }
 
     const newRegion = calculateBoundsFromPins(pinsToCenter);
-    console.log('🎯 Centering on pins:', { newRegion, pinsCount: pinsToCenter.length });
     
     if (validateRegion(newRegion)) {
       // For single pins, use a more reasonable zoom level
@@ -305,15 +287,12 @@ export const MapScreen: React.FC = () => {
         longitudeDelta: 0.05,
       } : newRegion;
       
-      console.log('🎯 Adjusted region:', adjustedRegion);
-      
       // Set the region state first
       setRegion(adjustedRegion);
       
       // Then animate to the region with a delay to ensure mapRef is ready
       setTimeout(() => {
         if (mapRef.current) {
-          console.log('🎯 Animating to region...');
           mapRef.current.animateToRegion(adjustedRegion, 1500);
         }
       }, 100);
@@ -619,7 +598,7 @@ const styles = StyleSheet.create({
   },
   pinCountContainer: {
     position: 'absolute',
-    top: spacing.xl,
+    top: spacing.xl + 48, // Move below tags bar (xl + estimated tag bar height)
     left: spacing.lg,
   },
   pinCountBadge: {
@@ -651,27 +630,33 @@ const styles = StyleSheet.create({
   },
   addTagButton: {
     backgroundColor: colors.primary.darkGreen,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: spacing.xs,
+    paddingHorizontal: spacing.md, // 16dp horizontal padding per Terra design
+    paddingVertical: spacing.sm, // 8dp vertical padding
+    borderRadius: spacing.sm, // 8dp corner radius per Terra design
     marginLeft: spacing.xs,
+    minHeight: 32, // Consistent height with tag bubbles
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   addTagButtonText: {
+    ...typography.textStyles.caption, // 12px/16px, Medium, Letter spacing 0.2px
     color: colors.background.white,
-    fontSize: 12,
-    fontWeight: '600',
+    fontWeight: typography.fontWeight.medium, // 500
   },
   clearFilterButton: {
     backgroundColor: colors.functional.error,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: spacing.xs,
+    paddingHorizontal: spacing.md, // 16dp horizontal padding per Terra design
+    paddingVertical: spacing.sm, // 8dp vertical padding
+    borderRadius: spacing.sm, // 8dp corner radius per Terra design
     marginLeft: spacing.xs,
+    minHeight: 32, // Consistent height with tag bubbles
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   clearFilterText: {
+    ...typography.textStyles.caption, // 12px/16px, Medium, Letter spacing 0.2px
     color: colors.background.white,
-    fontSize: 12,
-    fontWeight: '600',
+    fontWeight: typography.fontWeight.medium, // 500
   },
   fab: {
     ...components.button.fab,

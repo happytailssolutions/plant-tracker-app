@@ -89,44 +89,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.secondary.greenPale,
-    borderRadius: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    borderRadius: spacing.sm, // 8dp corner radius per Terra design
+    paddingHorizontal: spacing.sm, // 8dp horizontal padding
+    paddingVertical: spacing.xs, // 4dp vertical padding
     marginRight: spacing.xs,
     marginBottom: spacing.xs,
     borderWidth: 1,
     borderColor: colors.secondary.greenPale,
+    minHeight: 32, // Ensure consistent height
   },
   pressable: {
-    backgroundColor: colors.accent.blueLight,
-    borderColor: colors.accent.blue,
+    backgroundColor: colors.secondary.greenPale,
+    borderColor: colors.primary.darkGreen,
   },
   selected: {
     backgroundColor: colors.primary.darkGreen,
     borderColor: colors.primary.darkGreen,
   },
   text: {
-    ...typography.textStyles.caption,
+    ...typography.textStyles.caption, // 12px/16px, Medium, Letter spacing 0.2px
     color: colors.primary.darkGreen,
-    fontWeight: '500',
+    fontWeight: typography.fontWeight.medium, // 500
   },
   selectedText: {
     color: colors.background.white,
   },
   removeButton: {
     marginLeft: spacing.xs,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: colors.functional.error,
     justifyContent: 'center',
     alignItems: 'center',
   },
   removeText: {
     color: colors.background.white,
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 12,
+    fontSize: 14,
+    fontWeight: typography.fontWeight.semibold,
+    lineHeight: 14,
   },
   listContainer: {
     flexDirection: 'row',
