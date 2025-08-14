@@ -171,14 +171,9 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
 
   // Initialize form data when modal opens or initialData changes
   useEffect(() => {
-    if (visible && initialData) {
-      setFormData(prev => ({
-        ...prev,
-        ...initialData,
-      }));
-    } else if (visible && mode === 'create') {
-      // Reset form for create mode
-      setFormData({
+    if (visible && mode === 'create') {
+      // Always start with fresh form data for create mode
+      const freshFormData = {
         name: '',
         description: '',
         pinType: 'Tree',
@@ -195,10 +190,28 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
         notes: {
           entries: [],
         },
-      });
+      };
+      
+      // Apply initialData on top of fresh form (if provided)
+      if (initialData) {
+        setFormData({
+          ...freshFormData,
+          ...initialData,
+        });
+      } else {
+        setFormData(freshFormData);
+      }
     }
     setErrors({});
   }, [visible, initialData, mode, projects]);
+
+  // Clear form data when modal closes
+  useEffect(() => {
+    if (!visible) {
+      // Reset tag input when modal closes
+      setTagInput('');
+    }
+  }, [visible]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
