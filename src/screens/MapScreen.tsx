@@ -608,9 +608,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   pinCountText: {
+    ...typography.textStyles.caption, // 12px/16px, Medium, Letter spacing 0.2px - same as tags
     color: colors.background.white,
-    fontSize: 14,
-    fontWeight: '600',
+    fontWeight: typography.fontWeight.medium, // 500 - consistent with tags and buttons
   },
   tagFilterContainer: {
     position: 'absolute',
