@@ -91,6 +91,7 @@ interface PinEditorFormProps {
   latitude?: number;
   longitude?: number;
   pinId?: string; // Add pinId for edit mode
+  onRefresh?: () => void; // Callback to refresh map data after pin creation
 }
 
 export const PinEditorForm: React.FC<PinEditorFormProps> = ({
@@ -104,6 +105,7 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
   latitude,
   longitude,
   pinId,
+  onRefresh,
 }) => {
   const [formData, setFormData] = useState<PinFormData>({
     name: '',
@@ -137,9 +139,11 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
         setSaveLoading(false);
         setSaveStage('idle');
         Alert.alert('Success', 'Pin created successfully!');
+        // Refresh map data before closing
+        if (onRefresh) {
+          onRefresh();
+        }
         onClose();
-        // Optionally refresh the map data
-        // You might want to add a callback to refresh the map
       },
       onError: (error) => {
         setSaveLoading(false);

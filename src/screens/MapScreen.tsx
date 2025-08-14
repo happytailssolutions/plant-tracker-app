@@ -13,6 +13,7 @@ import { colors, spacing, components, typography } from '../styles/theme';
 import { useMapStore } from '../state/mapStore';
 import { useLocation } from '../hooks/useLocation';
 import { calculateBoundsFromPins, createRegionFromCoordinates, validateRegion, DEFAULT_REGION } from '../utils/mapUtils';
+import { Ionicons } from '@expo/vector-icons';
 import { filterPinsByTags, extractUniqueTags } from '../utils/tagUtils';
 
 // Debounce delay for map region changes (in milliseconds)
@@ -85,7 +86,7 @@ export const MapScreen: React.FC = () => {
   );
 
   // GraphQL query for fetching all pins of the selected project (for centering and tag extraction)
-  const { data: projectPinsData, loading: projectPinsLoading } = useQuery<PinsByProjectQueryResponse>(
+  const { data: projectPinsData, loading: projectPinsLoading, refetch: refetchProjectPins } = useQuery<PinsByProjectQueryResponse>(
     PINS_BY_PROJECT_QUERY,
     {
       variables: { projectId: selectedProjectId! },
@@ -148,6 +149,27 @@ export const MapScreen: React.FC = () => {
     if (pinCreationMode) return;
     setSelectedPin(pin.id);
   }, [setSelectedPin, pinCreationMode]);
+
+  // Comprehensive refresh function for map data
+  const handleMapRefresh = useCallback(async () => {
+    try {
+      // Refetch both the map bounds pins and project pins
+      await Promise.all([
+        refetch({
+          mapBounds: {
+            ...mapBounds,
+            projectId: selectedProjectId,
+          },
+        }),
+        refetchProjectPins({
+          projectId: selectedProjectId!,
+        }),
+      ]);
+      console.log('🔄 Map data refreshed successfully');
+    } catch (error) {
+      console.error('❌ Failed to refresh map data:', error);
+    }
+  }, [refetch, refetchProjectPins, mapBounds, selectedProjectId]);
 
   // Handle FAB press to start pin creation
   const handleCreatePin = useCallback(() => {
@@ -296,13 +318,8 @@ export const MapScreen: React.FC = () => {
       // Small delay to ensure database transaction is complete
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Explicitly refetch pins to ensure the new pin appears on the map
-      await refetch({
-        mapBounds: {
-          ...mapBounds,
-          projectId: selectedProjectId,
-        },
-      });
+      // Refresh map data to show the new pin
+      await handleMapRefresh();
 
       Alert.alert('Success', `Quickly added ${pinType} at the selected location!`);
       setLastUsedPinType(pinType);
@@ -313,7 +330,7 @@ export const MapScreen: React.FC = () => {
       console.error('Quick add pin error:', error);
       Alert.alert('Error', 'Failed to create pin. Please try again.');
     }
-  }, [selectedProjectId, projectsData, setLastUsedPinType, exitPinCreation, createPin, refetch, mapBounds]);
+  }, [selectedProjectId, projectsData, setLastUsedPinType, exitPinCreation, createPin, handleMapRefresh]);
 
   // Handle pin editor close
   const handlePinEditorClose = useCallback(() => {
@@ -481,7 +498,7 @@ export const MapScreen: React.FC = () => {
         rotateEnabled={!showPinCreationControls}
         pitchEnabled={!showPinCreationControls}
         showsUserLocation={true}
-        showsMyLocationButton={true}
+        showsMyLocationButton={false}
         showsCompass={true}
         showsScale={true}
         mapType={mapType}
@@ -540,7 +557,7 @@ export const MapScreen: React.FC = () => {
               style={styles.addTagButton}
               onPress={openTagSelection}
             >
-              <Text style={styles.addTagButtonText}>Add Tag</Text>
+              <Text style={styles.addTagButtonText}>Filter</Text>
             </TouchableOpacity>
             {selectedTags.length > 0 && (
               <TouchableOpacity
@@ -574,6 +591,15 @@ export const MapScreen: React.FC = () => {
       {/* Center Pin Icon - shows when in creation mode */}
       <CenterPinIcon visible={pinCreationMode} />
 
+      {/* Custom Location Button */}
+      <TouchableOpacity
+        style={styles.locationButton}
+        onPress={centerMapOnUserLocation}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="locate" size={24} color={colors.primary.darkGreen} />
+      </TouchableOpacity>
+
       {/* Pin Creation Controls */}
       {showPinCreationControls && frozenCoordinates && (
         <PinCreationControls
@@ -600,6 +626,7 @@ export const MapScreen: React.FC = () => {
             projectId: selectedProjectId || undefined,
             isPublic: projectsData?.myProjects?.find(p => p.id === selectedProjectId)?.isPublic || false
           }}
+         onRefresh={handleMapRefresh}
        />
 
       {/* Pin Detail Sheet */}
@@ -666,6 +693,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.xl + 48, // Move below tags bar (xl + estimated tag bar height)
     left: spacing.lg,
+  },
+  locationButton: {
+    position: 'absolute',
+    top: spacing.xl + 48, // Same level as pin count, below tags bar
+    right: spacing.lg,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.background.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.functional.neutral,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   pinCountBadge: {
     backgroundColor: colors.primary.darkGreen,
