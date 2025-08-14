@@ -34,7 +34,6 @@ export const MapScreen: React.FC = () => {
   });
 
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const previewCoordinateTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const mapRef = useRef<MapView>(null);
   const router = useRouter();
   
@@ -139,19 +138,7 @@ export const MapScreen: React.FC = () => {
     setRegion(newRegion);
     debouncedFetchPins(newRegion);
     
-    // Update preview pin coordinates if in preview mode (debounced)
-    if (previewPinMode) {
-      if (previewCoordinateTimeoutRef.current) {
-        clearTimeout(previewCoordinateTimeoutRef.current);
-      }
-      
-      previewCoordinateTimeoutRef.current = setTimeout(() => {
-        setPreviewPinCoordinates({
-          latitude: newRegion.latitude,
-          longitude: newRegion.longitude,
-        });
-      }, 100); // Shorter debounce for preview updates
-    }
+    // No need to update preview coordinates in the new flow
   }, [debouncedFetchPins]);
 
   // Handle marker press
@@ -414,9 +401,6 @@ export const MapScreen: React.FC = () => {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
-      if (previewCoordinateTimeoutRef.current) {
-        clearTimeout(previewCoordinateTimeoutRef.current);
-      }
     };
   }, []);
 
@@ -479,13 +463,9 @@ export const MapScreen: React.FC = () => {
         style={styles.map}
         region={region}
         onRegionChangeComplete={handleRegionChangeComplete}
-        onPress={previewPinMode ? (event) => {
-          // Tap to place preview pin
-          const { coordinate } = event.nativeEvent;
-          setPreviewPinCoordinates({
-            latitude: coordinate.latitude,
-            longitude: coordinate.longitude,
-          });
+        onPress={pinCreationMode ? (event) => {
+          // In creation mode, map taps are allowed for repositioning
+          // The center pin icon shows the selected location
         } : undefined}
         showsUserLocation={true}
         showsMyLocationButton={true}
