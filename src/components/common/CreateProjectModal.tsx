@@ -19,12 +19,23 @@ import {
   CreateProjectMutationVariables,
 } from '../../api/mutations/projectMutations';
 import { MY_PROJECTS_QUERY } from '../../api/queries/projectQueries';
+import { Dropdown } from './Dropdown';
 
 interface CreateProjectModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
+
+// Project type options
+const PROJECT_TYPE_OPTIONS = [
+  { value: '', label: 'Select project type' },
+  { value: 'Garden', label: 'Garden' },
+  { value: 'Farm', label: 'Farm' },
+  { value: 'Reforestation', label: 'Reforestation' },
+  { value: 'Orchard/Grove', label: 'Orchard/Grove' },
+  { value: 'Permaculture', label: 'Permaculture' },
+];
 
 export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   visible,
@@ -37,7 +48,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     location: '',
     projectType: '',
     status: 'active',
-    isPublic: false,
+    isPublic: true, // Default to public
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -62,10 +73,10 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
     if (!formData.name.trim()) {
       newErrors.name = 'Project name is required';
-    }
-
-    if (formData.name.trim().length < 3) {
+    } else if (formData.name.trim().length < 3) {
       newErrors.name = 'Project name must be at least 3 characters';
+    } else if (formData.name.trim().length > 100) {
+      newErrors.name = 'Project name must be less than 100 characters';
     }
 
     setErrors(newErrors);
@@ -101,7 +112,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       location: '',
       projectType: '',
       status: 'active',
-      isPublic: false,
+      isPublic: true, // Default to public
     });
     setErrors({});
     onClose();
@@ -186,17 +197,13 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             </View>
 
             {/* Project Type */}
-            <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Project Type</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.projectType}
-                onChangeText={(value) => updateField('projectType', value)}
-                placeholder="e.g., Reforestation, Urban Forestry"
-                placeholderTextColor={colors.functional.neutral}
-                maxLength={100}
-              />
-            </View>
+            <Dropdown
+              label="Project Type"
+              value={formData.projectType || ''}
+              options={PROJECT_TYPE_OPTIONS}
+              onValueChange={(value) => updateField('projectType', value)}
+              placeholder="Select project type"
+            />
 
             {/* Status */}
             <View style={styles.fieldContainer}>
