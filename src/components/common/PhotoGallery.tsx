@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { colors, typography, spacing } from '../../styles/theme';
 
@@ -15,6 +16,56 @@ interface PhotoGalleryProps {
   onRemovePhoto: (index: number) => void;
   maxPhotos?: number;
 }
+
+// Custom photo component with loading and error states
+const PhotoItem: React.FC<{ uri: string; onRemove: () => void; index: number }> = ({ uri, onRemove, index }) => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const handleLoad = () => {
+    setLoading(false);
+    console.log(`Photo ${index} loaded successfully:`, uri);
+  };
+
+  const handleError = (errorEvent: any) => {
+    setLoading(false);
+    setError(true);
+    console.error(`Photo ${index} failed to load:`, uri, errorEvent.nativeEvent?.error);
+  };
+
+  return (
+    <View style={styles.photoContainer}>
+      {loading && (
+        <View style={[styles.photo, styles.loadingContainer]}>
+          <ActivityIndicator size="small" color={colors.primary.darkGreen} />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      )}
+      
+      {error ? (
+        <View style={[styles.photo, styles.errorContainer]}>
+          <Text style={styles.errorIcon}>📷</Text>
+          <Text style={styles.errorText}>Failed to load</Text>
+        </View>
+      ) : (
+        <Image
+          source={{ uri }}
+          style={[styles.photo, loading && styles.hidden]}
+          onLoad={handleLoad}
+          onError={handleError}
+          defaultSource={require('../../../assets/images/icon.png')}
+        />
+      )}
+      
+      <TouchableOpacity
+        style={styles.removeButton}
+        onPress={onRemove}
+      >
+        <Text style={styles.removeButtonText}>✕</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   photos = [],
@@ -52,15 +103,12 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     // Render existing photos
     for (let i = 0; i < photos.length; i++) {
       photoItems.push(
-        <View key={`photo-${i}`} style={styles.photoContainer}>
-          <Image source={{ uri: photos[i] }} style={styles.photo} />
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={() => handleRemovePhoto(i)}
-          >
-            <Text style={styles.removeButtonText}>✕</Text>
-          </TouchableOpacity>
-        </View>
+        <PhotoItem
+          key={`photo-${i}`}
+          uri={photos[i]}
+          index={i}
+          onRemove={() => handleRemovePhoto(i)}
+        />
       );
     }
 
@@ -216,5 +264,38 @@ const styles = StyleSheet.create({
     ...typography.textStyles.caption,
     color: colors.functional.neutral,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    backgroundColor: colors.secondary.greenPale,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...typography.textStyles.caption,
+    color: colors.functional.neutral,
+    marginTop: spacing.xs,
+    fontSize: 10,
+  },
+  errorContainer: {
+    backgroundColor: colors.secondary.greenPale,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.functional.error,
+    borderStyle: 'dashed',
+  },
+  errorIcon: {
+    fontSize: 24,
+    opacity: 0.5,
+  },
+  errorText: {
+    ...typography.textStyles.caption,
+    color: colors.functional.error,
+    marginTop: spacing.xs,
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  hidden: {
+    opacity: 0,
   },
 }); 

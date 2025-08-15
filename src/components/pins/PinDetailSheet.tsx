@@ -141,7 +141,13 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
   };
 
   const getPhotos = (): string[] => {
-    return (pin?.metadata as any)?.photos || [];
+    const photos = (pin?.metadata as any)?.photos || [];
+    console.log('Pin photos from metadata:', photos);
+    console.log('Number of photos:', photos.length);
+    if (photos.length > 0) {
+      console.log('First photo URL:', photos[0]);
+    }
+    return photos;
   };
 
   const getNotes = (): Array<{ text: string; timestamp: string; userId?: string }> => {
@@ -314,7 +320,7 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Pin Details</Text>
+            <Text style={styles.headerTitle}>Plant Details</Text>
             <View style={styles.placeholder} />
           </View>
 
