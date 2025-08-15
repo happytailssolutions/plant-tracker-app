@@ -21,6 +21,7 @@ export const MY_PROJECTS_QUERY = gql`
       isActive
       createdAt
       updatedAt
+      pinsCount
       owner {
         id
         email
@@ -59,6 +60,7 @@ export interface Project {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  pinsCount: number;
   owner: {
     id: string;
     email: string;

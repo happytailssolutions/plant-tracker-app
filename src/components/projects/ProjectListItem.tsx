@@ -140,6 +140,15 @@ export const ProjectListItem: React.FC<ProjectListItemProps> = ({
             </View>
           )}
 
+          {project.projectType && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Type:</Text>
+              <Text style={styles.detailValue} numberOfLines={1}>
+                {project.projectType}
+              </Text>
+            </View>
+          )}
+
           {project.area && (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Area:</Text>
@@ -160,9 +169,16 @@ export const ProjectListItem: React.FC<ProjectListItemProps> = ({
         </View>
 
         <View style={styles.footer}>
-          <View style={styles.membersInfo}>
-            <Text style={styles.membersText}>
-              {project.members.length} member{project.members.length !== 1 ? 's' : ''}
+          <View style={styles.statsInfo}>
+            {/* Show members count only for public projects */}
+            {project.isPublic && (
+              <Text style={styles.statsText}>
+                {project.members.length} member{project.members.length !== 1 ? 's' : ''}
+              </Text>
+            )}
+            {/* Show plants/pins count */}
+            <Text style={styles.statsText}>
+              {project.pinsCount} plant{project.pinsCount !== 1 ? 's' : ''}
             </Text>
           </View>
           <View style={styles.visibility}>
@@ -258,11 +274,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.background.light,
   },
-  membersInfo: {
+  statsInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.md,
   },
-  membersText: {
+  statsText: {
     ...typography.textStyles.caption,
     color: colors.functional.neutral,
   },
