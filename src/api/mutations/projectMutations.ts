@@ -37,8 +37,8 @@ export const CREATE_PROJECT_MUTATION = gql`
 
 // Mutation to update a project
 export const UPDATE_PROJECT_MUTATION = gql`
-  mutation UpdateProject($id: ID!, $input: UpdateProjectInput!) {
-    updateProject(id: $id, input: $input) {
+  mutation UpdateProject($input: UpdateProjectInput!) {
+    updateProject(input: $input) {
       id
       name
       description
@@ -73,10 +73,7 @@ export const UPDATE_PROJECT_MUTATION = gql`
 // Mutation to delete a project
 export const DELETE_PROJECT_MUTATION = gql`
   mutation DeleteProject($id: ID!) {
-    deleteProject(id: $id) {
-      id
-      name
-    }
+    deleteProject(id: $id)
   }
 `;
 
@@ -184,10 +181,7 @@ export interface UpdateProjectMutationResponse {
 
 // Response type for the DeleteProject mutation
 export interface DeleteProjectMutationResponse {
-  deleteProject: {
-    id: string;
-    name: string;
-  };
+  deleteProject: boolean;
 }
 
 // Variables type for the CreateProject mutation
@@ -197,7 +191,6 @@ export interface CreateProjectMutationVariables {
 
 // Variables type for the UpdateProject mutation
 export interface UpdateProjectMutationVariables {
-  id: string;
   input: UpdateProjectInput;
 }
 

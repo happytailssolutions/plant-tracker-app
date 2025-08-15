@@ -1,23 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useQuery, useMutation } from '@apollo/client';
-import { IconSymbol } from '../components/ui/IconSymbol';
+import { useQuery } from '@apollo/client';
+
 import { colors, typography, spacing, components } from '../styles/theme';
 import { MY_PROJECTS_QUERY, MyProjectsQueryResponse, Project } from '../api/queries/projectQueries';
 import { ProjectListItem } from '../components/projects';
 import { CreateProjectModal } from '../components/common';
 import { useMapStore } from '../state/mapStore';
-import { testSupabaseConnection, diagnoseBucketIssue, testDirectUpload } from '../api/utils/imageUpload';
+
 import { useAuth } from '../hooks/useAuth';
 
 export const ProjectsScreen: React.FC = () => {
@@ -71,41 +70,7 @@ export const ProjectsScreen: React.FC = () => {
     setRefreshing(false);
   };
 
-  // Temporary test function for Supabase
-  const handleTestSupabase = async () => {
-    try {
-      console.log('🧪 Testing Supabase connection...');
-      await testSupabaseConnection();
-      Alert.alert('Test Complete', 'Check the console logs for results');
-    } catch (error) {
-      console.error('Test failed:', error);
-      Alert.alert('Test Failed', 'Check console for details');
-    }
-  };
 
-  // Detailed bucket diagnostic function
-  const handleDiagnoseBucket = async () => {
-    try {
-      console.log('🔍 Starting bucket diagnosis...');
-      await diagnoseBucketIssue();
-      Alert.alert('Diagnosis Complete', 'Check the console logs for detailed results');
-    } catch (error) {
-      console.error('Diagnosis failed:', error);
-      Alert.alert('Diagnosis Failed', 'Check console for details');
-    }
-  };
-
-  // Direct upload test function
-  const handleDirectUpload = async () => {
-    try {
-      console.log('🚀 Starting direct upload test...');
-      await testDirectUpload();
-      Alert.alert('Direct Upload Test Complete', 'Check the console logs for results');
-    } catch (error) {
-      console.error('Direct upload test failed:', error);
-      Alert.alert('Direct Upload Test Failed', 'Check console for details');
-    }
-  };
 
   const handleCreateProject = () => {
     setIsCreateModalVisible(true);
@@ -170,35 +135,7 @@ export const ProjectsScreen: React.FC = () => {
         </Text>
       </View>
 
-      {/* Temporary test buttons */}
-      <View style={styles.testButtonsContainer}>
-        <TouchableOpacity
-          style={[styles.testButton, { backgroundColor: colors.accent.blue }]}
-          onPress={handleTestSupabase}
-        >
-          <Text style={[styles.testButtonText, { color: colors.functional.white }]}>
-            Test Supabase
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.testButton, { backgroundColor: colors.accent.amber }]}
-          onPress={handleDiagnoseBucket}
-        >
-          <Text style={[styles.testButtonText, { color: colors.functional.white }]}>
-            Diagnose Bucket
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.testButton, { backgroundColor: colors.accent.teal }]}
-          onPress={handleDirectUpload}
-        >
-          <Text style={[styles.testButtonText, { color: colors.functional.white }]}>
-            Direct Upload
-          </Text>
-        </TouchableOpacity>
-      </View>
+
 
       <FlatList
         data={projects}
@@ -328,21 +265,5 @@ const styles = StyleSheet.create({
     color: colors.background.white,
     lineHeight: 28,
   },
-  testButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  testButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: spacing.sm,
-    minWidth: 120,
-    alignItems: 'center',
-  },
-  testButtonText: {
-    ...typography.textStyles.body,
-    fontWeight: '600',
-  },
+
 }); 

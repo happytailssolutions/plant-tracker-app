@@ -85,12 +85,12 @@ export const RenameProjectModal: React.FC<RenameProjectModalProps> = ({
 
     try {
       const input: UpdateProjectInput = {
+        id: project.id,
         name: newName.trim(),
       };
 
       await updateProject({
         variables: {
-          id: project.id,
           input,
         },
       });
