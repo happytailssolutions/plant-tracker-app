@@ -179,6 +179,7 @@ export const uploadImageToStorage = async (
         .upload(fileName, blob, {
           cacheControl: '3600',
           upsert: false,
+          contentType: 'image/jpeg',
         });
 
       if (error) {
@@ -219,22 +220,33 @@ export const uploadImageToStorage = async (
          try {
            console.log(`🔄 Trying FileSystem fallback for: ${imageUri}`);
            
-           // Read file as base64
-           const base64 = await FileSystem.readAsStringAsync(imageUri, {
-             encoding: FileSystem.EncodingType.Base64,
-           });
-           
-           console.log(`📦 Base64 data read, length: ${base64.length}`);
-           
-           // Try to upload base64 directly to Supabase
-           console.log(`🚀 Uploading to Supabase (fallback): ${fileName}`);
-           const { error } = await supabase.storage
-             .from('images')
-             .upload(fileName, base64, {
-               cacheControl: '3600',
-               upsert: false,
-               contentType: 'image/jpeg',
-             });
+                     // Read file as base64
+          const base64 = await FileSystem.readAsStringAsync(imageUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          
+          console.log(`📦 Base64 data read, length: ${base64.length}`);
+          
+          // Convert base64 to blob for proper image upload
+          const byteCharacters = atob(base64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'image/jpeg' });
+          
+          console.log(`📦 Blob created from base64, size: ${blob.size} bytes`);
+          
+          // Upload blob to Supabase
+          console.log(`🚀 Uploading to Supabase (fallback): ${fileName}`);
+          const { error } = await supabase.storage
+            .from('images')
+            .upload(fileName, blob, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: 'image/jpeg',
+            });
 
            if (error) {
              console.error('❌ Supabase upload error (fallback):', error);

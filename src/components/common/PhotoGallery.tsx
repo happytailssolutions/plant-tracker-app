@@ -31,6 +31,13 @@ const PhotoItem: React.FC<{ uri: string; onRemove: () => void; index: number }> 
     setLoading(false);
     setError(true);
     console.error(`Photo ${index} failed to load:`, uri, errorEvent.nativeEvent?.error);
+    
+    // Log additional debugging info
+    console.log(`Photo ${index} error details:`, {
+      uri,
+      errorType: errorEvent.nativeEvent?.error,
+      errorMessage: errorEvent.nativeEvent?.message,
+    });
   };
 
   return (
@@ -46,6 +53,7 @@ const PhotoItem: React.FC<{ uri: string; onRemove: () => void; index: number }> 
         <View style={[styles.photo, styles.errorContainer]}>
           <Text style={styles.errorIcon}>📷</Text>
           <Text style={styles.errorText}>Failed to load</Text>
+          <Text style={styles.errorHint}>Tap X to remove</Text>
         </View>
       ) : (
         <Image
@@ -293,6 +301,13 @@ const styles = StyleSheet.create({
     color: colors.functional.error,
     marginTop: spacing.xs,
     fontSize: 10,
+    textAlign: 'center',
+  },
+  errorHint: {
+    ...typography.textStyles.caption,
+    color: colors.functional.neutral,
+    marginTop: 2,
+    fontSize: 8,
     textAlign: 'center',
   },
   hidden: {
