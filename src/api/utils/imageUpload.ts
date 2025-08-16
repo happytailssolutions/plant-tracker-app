@@ -156,12 +156,20 @@ export const uploadImageToStorage = async (
         console.log(`📱 Android file URI detected, trying: ${fetchUri}`);
       }
       
-      const response = await fetch(fetchUri, {
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/octet-stream',
-        },
-      });
+      // Try to fetch the image
+      let response;
+      try {
+        response = await fetch(fetchUri, {
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/octet-stream',
+          },
+        });
+      } catch (fetchError) {
+        console.log(`❌ Fetch failed for ${fetchUri}:`, fetchError);
+        // If fetch fails, throw immediately to trigger fallback
+        throw fetchError;
+      }
       
       clearTimeout(timeoutId);
       
@@ -220,29 +228,32 @@ export const uploadImageToStorage = async (
          try {
            console.log(`🔄 Trying FileSystem fallback for: ${imageUri}`);
            
-                     // Read file as base64
+                     // Read file as raw bytes instead of base64
+          const fileInfo = await FileSystem.getInfoAsync(imageUri);
+          console.log(`📁 File info: size=${fileInfo.size} bytes`);
+          
+          // Read file as base64 and convert to proper format
           const base64 = await FileSystem.readAsStringAsync(imageUri, {
             encoding: FileSystem.EncodingType.Base64,
           });
           
           console.log(`📦 Base64 data read, length: ${base64.length}`);
           
-          // Convert base64 to blob for proper image upload
-          const byteCharacters = atob(base64);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          // Convert base64 to proper binary data for React Native
+          // Use a more compatible approach for React Native
+          const binaryString = atob(base64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
           }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: 'image/jpeg' });
           
-          console.log(`📦 Blob created from base64, size: ${blob.size} bytes`);
+          console.log(`📦 Binary data created, length: ${bytes.length}`);
           
-          // Upload blob to Supabase
+          // Upload bytes directly to Supabase
           console.log(`🚀 Uploading to Supabase (fallback): ${fileName}`);
           const { error } = await supabase.storage
             .from('images')
-            .upload(fileName, blob, {
+            .upload(fileName, bytes, {
               cacheControl: '3600',
               upsert: false,
               contentType: 'image/jpeg',
@@ -277,10 +288,15 @@ export const uploadImageToStorage = async (
              path: fileName,
            };
            
-         } catch (fallbackError) {
-           console.error('❌ Fallback method also failed:', fallbackError);
-           throw new Error(`Both fetch and FileSystem methods failed: ${fetchError.message}`);
-         }
+                   } catch (fallbackError) {
+            console.error('❌ Fallback method also failed:', fallbackError);
+            console.error('❌ Fallback error details:', {
+              message: fallbackError.message,
+              stack: fallbackError.stack,
+              name: fallbackError.name
+            });
+            throw new Error(`Both fetch and FileSystem methods failed: ${fetchError.message}. Fallback error: ${fallbackError.message}`);
+          }
        }
       
       throw fetchError;
