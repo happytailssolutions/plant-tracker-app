@@ -16,6 +16,9 @@ interface MapState {
   isCentering: boolean;
   mapType: MapType;
   
+  // Pin Filtering State
+  filteredPinId: string | null;
+  
   // Tag Selection Modal State
   isTagSelectionOpen: boolean;
   availableTags: string[];
@@ -52,6 +55,9 @@ interface MapState {
   
   // Pin Centering Actions
   centerOnPin: (pinId: string, latitude: number, longitude: number) => void;
+  
+  // Pin Filtering Actions
+  setPinFilter: (pinId: string | null) => void;
 }
 
 export const useMapStore = create<MapState>((set, get) => ({
@@ -63,6 +69,9 @@ export const useMapStore = create<MapState>((set, get) => ({
   autoCenterMode: null,
   isCentering: false,
   mapType: 'satellite',
+  
+  // Pin Filtering Initial State
+  filteredPinId: null,
   
   // Tag Selection Modal Initial State
   isTagSelectionOpen: false,
@@ -98,6 +107,7 @@ export const useMapStore = create<MapState>((set, get) => ({
     set({ 
       selectedTags: [],
       selectedPinId: null, // Clear selected pin when clearing filters
+      filteredPinId: null, // Clear pin filter when clearing tags
       autoCenterMode: 'project-pins',
       isCentering: true,
     }),
@@ -135,6 +145,7 @@ export const useMapStore = create<MapState>((set, get) => ({
       selectedProjectId: null,
       selectedPinId: null,
       selectedTags: [],
+      filteredPinId: null,
       autoCenterMode: null,
     }),
     
@@ -143,6 +154,7 @@ export const useMapStore = create<MapState>((set, get) => ({
       selectedProjectId: null,
       selectedPinId: null,
       selectedTags: [],
+      filteredPinId: null,
       region: null,
       autoCenterMode: null,
       isCentering: false,
@@ -185,7 +197,18 @@ export const useMapStore = create<MapState>((set, get) => ({
   centerOnPin: (pinId: string, latitude: number, longitude: number) => 
     set({ 
       selectedPinId: pinId,
+      filteredPinId: pinId,
       autoCenterMode: 'project-pins',
       isCentering: true,
+    }),
+    
+  // Pin Filtering Actions
+  setPinFilter: (pinId: string | null) => 
+    set({ 
+      selectedPinId: pinId,
+      filteredPinId: pinId,
+      // When filtering by pin, also set centering mode
+      autoCenterMode: pinId ? 'project-pins' : null,
+      isCentering: pinId ? true : false,
     }),
 })); 

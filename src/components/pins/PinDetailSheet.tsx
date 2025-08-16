@@ -112,11 +112,14 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
     // Use the map store to center on this pin
     centerOnPin(pin.id, pin.latitude, pin.longitude);
     
-    // Close the detail sheet
+    // Close the detail sheet first
     onClose();
     
-    // Navigate to the map tab
-    router.push('/(tabs)/explore');
+    // Add a small delay to ensure the sheet closes before navigation
+    setTimeout(() => {
+      // Navigate to the map tab
+      router.push('/(tabs)/explore');
+    }, 100);
   };
 
   const handleConfirmDelete = async () => {

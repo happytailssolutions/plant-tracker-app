@@ -42,6 +42,7 @@ export const MapScreen: React.FC = () => {
   // Map store state
   const selectedProjectId = useMapStore((state) => state.selectedProjectId);
   const selectedPinId = useMapStore((state) => state.selectedPinId);
+  const filteredPinId = useMapStore((state) => state.filteredPinId);
   const selectedTags = useMapStore((state) => state.selectedTags);
   const autoCenterMode = useMapStore((state) => state.autoCenterMode);
   const isCentering = useMapStore((state) => state.isCentering);
@@ -64,6 +65,7 @@ export const MapScreen: React.FC = () => {
   const setAvailableTags = useMapStore((state) => state.setAvailableTags);
   const mapType = useMapStore((state) => state.mapType);
   const setMapType = useMapStore((state) => state.setMapType);
+  const setPinFilter = useMapStore((state) => state.setPinFilter);
   
   // Location hook
   const { getCurrentLocation, loading: locationLoading } = useLocation();
@@ -502,7 +504,12 @@ export const MapScreen: React.FC = () => {
   }
 
   const allPins = data?.pinsInBounds || [];
-  const pins = filterPinsByTags(allPins, selectedTags);
+  const pinsAfterTagFilter = filterPinsByTags(allPins, selectedTags);
+  
+  // Apply pin filtering if a specific pin is selected
+  const pins = filteredPinId 
+    ? pinsAfterTagFilter.filter(pin => pin.id === filteredPinId)
+    : pinsAfterTagFilter;
 
   return (
     <View style={styles.container}>
@@ -589,6 +596,21 @@ export const MapScreen: React.FC = () => {
                 <Text style={styles.clearFilterText}>Clear</Text>
               </TouchableOpacity>
             )}
+          </View>
+        </View>
+      )}
+
+      {/* Pin filter indicator - show when a specific pin is filtered */}
+      {filteredPinId && (
+        <View style={styles.pinFilterContainer}>
+          <View style={styles.pinFilterBadge}>
+            <Text style={styles.pinFilterText}>Showing 1 plant</Text>
+            <TouchableOpacity
+              style={styles.clearPinFilterButton}
+              onPress={() => setPinFilter(null)}
+            >
+              <Text style={styles.clearPinFilterText}>Clear</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -791,6 +813,40 @@ const styles = StyleSheet.create({
     ...typography.textStyles.caption, // 12px/16px, Medium, Letter spacing 0.2px
     color: colors.background.white,
     fontWeight: typography.fontWeight.medium, // 500
+  },
+  pinFilterContainer: {
+    position: 'absolute',
+    top: spacing.xxl + 60, // Position below tag filter
+    left: spacing.lg,
+    right: spacing.lg,
+    zIndex: 1,
+  },
+  pinFilterBadge: {
+    backgroundColor: colors.primary.lightGreen,
+    borderRadius: spacing.sm,
+    padding: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pinFilterText: {
+    ...typography.textStyles.caption,
+    color: colors.primary.darkGreen,
+    fontWeight: typography.fontWeight.medium,
+  },
+  clearPinFilterButton: {
+    backgroundColor: colors.primary.darkGreen,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: spacing.sm,
+    minHeight: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clearPinFilterText: {
+    ...typography.textStyles.caption,
+    color: colors.background.white,
+    fontWeight: typography.fontWeight.medium,
   },
   fab: {
     ...components.button.fab,
