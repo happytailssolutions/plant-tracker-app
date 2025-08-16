@@ -24,20 +24,15 @@ const PhotoItem: React.FC<{ uri: string; onRemove: () => void; index: number }> 
 
   const handleLoad = () => {
     setLoading(false);
-    console.log(`Photo ${index} loaded successfully:`, uri);
   };
 
   const handleError = (errorEvent: any) => {
     setLoading(false);
     setError(true);
-    console.error(`Photo ${index} failed to load:`, uri, errorEvent.nativeEvent?.error);
-    
-    // Log additional debugging info
-    console.log(`Photo ${index} error details:`, {
-      uri,
-      errorType: errorEvent.nativeEvent?.error,
-      errorMessage: errorEvent.nativeEvent?.message,
-    });
+    // Only log errors in development mode
+    if (__DEV__) {
+      console.error(`Photo ${index} failed to load:`, uri, errorEvent.nativeEvent?.error);
+    }
   };
 
   return (

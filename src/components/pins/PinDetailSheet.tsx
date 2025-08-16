@@ -141,13 +141,7 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
   };
 
   const getPhotos = (): string[] => {
-    const photos = (pin?.metadata as any)?.photos || [];
-    console.log('Pin photos from metadata:', photos);
-    console.log('Number of photos:', photos.length);
-    if (photos.length > 0) {
-      console.log('First photo URL:', photos[0]);
-    }
-    return photos;
+    return (pin?.metadata as any)?.photos || [];
   };
 
   const getNotes = (): Array<{ text: string; timestamp: string; userId?: string }> => {

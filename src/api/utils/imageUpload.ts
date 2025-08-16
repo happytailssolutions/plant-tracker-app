@@ -167,12 +167,6 @@ export const uploadImageToStorage = async (
   const maxRetries = 3;
   
   try {
-    console.log(`📤 Uploading image: ${imageUri} (attempt ${retryCount + 1})`);
-    
-    // Skip bucket listing check since direct upload works
-    // The bucket listing issue doesn't affect actual uploads
-    // We'll handle bucket issues through upload error responses
-    
     // Generate a unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
@@ -184,14 +178,10 @@ export const uploadImageToStorage = async (
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
     try {
-      console.log(`🔍 Fetching image from: ${imageUri}`);
-      
       // Handle different URI schemes
       let fetchUri = imageUri;
       if (Platform.OS === 'android' && imageUri.startsWith('file://')) {
-        // For Android file URIs, try without the file:// prefix
         fetchUri = imageUri.replace('file://', '');
-        console.log(`📱 Android file URI detected, trying: ${fetchUri}`);
       }
       
       // Try to fetch the image
@@ -204,7 +194,6 @@ export const uploadImageToStorage = async (
           },
         });
       } catch (fetchError) {
-        console.log(`❌ Fetch failed for ${fetchUri}:`, fetchError);
         // If fetch fails, throw immediately to trigger fallback
         throw fetchError;
       }
@@ -216,10 +205,8 @@ export const uploadImageToStorage = async (
       }
       
       const blob = await response.blob();
-      console.log(`📦 Image blob created, size: ${blob.size} bytes`);
       
       // Upload to Supabase Storage
-      console.log(`🚀 Uploading to Supabase: ${fileName}`);
       const { error } = await supabase.storage
         .from('images')
         .upload(fileName, blob, {
@@ -229,8 +216,6 @@ export const uploadImageToStorage = async (
         });
 
       if (error) {
-        console.error('❌ Supabase upload error:', error);
-        
         // Handle specific bucket-related errors
         if (error.message.includes('bucket') || error.message.includes('not found')) {
           throw new Error(`Bucket access error: ${error.message}. Please check if the 'images' bucket exists and has proper permissions.`);
@@ -249,8 +234,6 @@ export const uploadImageToStorage = async (
       const { data: urlData } = supabase.storage
         .from('images')
         .getPublicUrl(fileName);
-
-      console.log(`✅ Image uploaded successfully: ${urlData.publicUrl}`);
       
       return {
         url: urlData.publicUrl,
@@ -259,36 +242,23 @@ export const uploadImageToStorage = async (
       
     } catch (fetchError) {
       clearTimeout(timeoutId);
-      console.log(`❌ Fetch failed: ${fetchError}`);
       
-             // Fallback: Try using FileSystem for Android
-       if (Platform.OS === 'android' && imageUri.startsWith('file://')) {
-         try {
-           console.log(`🔄 Trying FileSystem fallback for: ${imageUri}`);
-           
-                     // Read file as raw bytes instead of base64
-          const fileInfo = await FileSystem.getInfoAsync(imageUri);
-          console.log(`📁 File info: size=${fileInfo.size} bytes`);
-          
+      // Fallback: Try using FileSystem for Android
+      if (Platform.OS === 'android' && imageUri.startsWith('file://')) {
+        try {
           // Read file as base64 and convert to proper format
           const base64 = await FileSystem.readAsStringAsync(imageUri, {
             encoding: FileSystem.EncodingType.Base64,
           });
           
-          console.log(`📦 Base64 data read, length: ${base64.length}`);
-          
           // Convert base64 to proper binary data for React Native
-          // Use a more compatible approach for React Native
           const binaryString = atobPolyfill(base64);
           const bytes = new Uint8Array(binaryString.length);
           for (let i = 0; i < binaryString.length; i++) {
             bytes[i] = binaryString.charCodeAt(i);
           }
           
-          console.log(`📦 Binary data created, length: ${bytes.length}`);
-          
           // Upload bytes directly to Supabase
-          console.log(`🚀 Uploading to Supabase (fallback): ${fileName}`);
           const { error } = await supabase.storage
             .from('images')
             .upload(fileName, bytes, {
@@ -297,52 +267,40 @@ export const uploadImageToStorage = async (
               contentType: 'image/jpeg',
             });
 
-           if (error) {
-             console.error('❌ Supabase upload error (fallback):', error);
-             
-             // Handle specific bucket-related errors
-             if (error.message.includes('bucket') || error.message.includes('not found')) {
-               throw new Error(`Bucket access error: ${error.message}. Please check if the 'images' bucket exists and has proper permissions.`);
-             }
-             
-             // Handle permission errors
-             if (error.message.includes('permission') || error.message.includes('unauthorized')) {
-               throw new Error(`Permission error: ${error.message}. Please check your authentication and bucket policies.`);
-             }
-             
-             // Handle other errors
-             throw new Error(`Failed to upload image: ${error.message}`);
-           }
-
-           // Get the public URL
-           const { data: urlData } = supabase.storage
-             .from('images')
-             .getPublicUrl(fileName);
-
-           console.log(`✅ Image uploaded successfully (fallback): ${urlData.publicUrl}`);
-           
-           return {
-             url: urlData.publicUrl,
-             path: fileName,
-           };
-           
-                   } catch (fallbackError) {
-            console.error('❌ Fallback method also failed:', fallbackError);
-            console.error('❌ Fallback error details:', {
-              message: fallbackError.message,
-              stack: fallbackError.stack,
-              name: fallbackError.name
-            });
-            throw new Error(`Both fetch and FileSystem methods failed: ${fetchError.message}. Fallback error: ${fallbackError.message}`);
+          if (error) {
+            // Handle specific bucket-related errors
+            if (error.message.includes('bucket') || error.message.includes('not found')) {
+              throw new Error(`Bucket access error: ${error.message}. Please check if the 'images' bucket exists and has proper permissions.`);
+            }
+            
+            // Handle permission errors
+            if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+              throw new Error(`Permission error: ${error.message}. Please check your authentication and bucket policies.`);
+            }
+            
+            // Handle other errors
+            throw new Error(`Failed to upload image: ${error.message}`);
           }
-       }
+
+          // Get the public URL
+          const { data: urlData } = supabase.storage
+            .from('images')
+            .getPublicUrl(fileName);
+          
+          return {
+            url: urlData.publicUrl,
+            path: fileName,
+          };
+          
+        } catch (fallbackError) {
+          throw new Error(`Both fetch and FileSystem methods failed: ${fetchError.message}. Fallback error: ${fallbackError.message}`);
+        }
+      }
       
       throw fetchError;
     }
     
   } catch (error) {
-    console.error(`❌ Error uploading image (attempt ${retryCount + 1}):`, error);
-    
     // Retry logic for network errors
     if (retryCount < maxRetries && (
       error instanceof Error && (
@@ -352,7 +310,6 @@ export const uploadImageToStorage = async (
         error.message.includes('aborted')
       )
     )) {
-      console.log(`🔄 Retrying upload in ${(retryCount + 1) * 2} seconds...`);
       await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
       return uploadImageToStorage(imageUri, folder, retryCount + 1);
     }
@@ -368,15 +325,12 @@ export const uploadImagesToStorage = async (
   imageUris: string[],
   folder: string = 'pins'
 ): Promise<UploadedImage[]> => {
-  console.log(`Starting upload of ${imageUris.length} images`);
-  
   const results: UploadedImage[] = [];
   const errors: string[] = [];
   
   // Upload images sequentially to avoid overwhelming the server
   for (let i = 0; i < imageUris.length; i++) {
     try {
-      console.log(`Uploading image ${i + 1}/${imageUris.length}`);
       const result = await uploadImageToStorage(imageUris[i], folder);
       results.push(result);
     } catch (error) {
@@ -387,11 +341,9 @@ export const uploadImagesToStorage = async (
   }
   
   if (errors.length > 0) {
-    console.error('Some images failed to upload:', errors);
     throw new Error(`Failed to upload ${errors.length} out of ${imageUris.length} images: ${errors.join(', ')}`);
   }
   
-  console.log(`Successfully uploaded all ${results.length} images`);
   return results;
 };
 
