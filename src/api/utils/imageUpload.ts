@@ -3,6 +3,44 @@ import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 
+// Polyfill for atob function (base64 to binary) if not available
+const atobPolyfill = (str: string): string => {
+  if (typeof atob !== 'undefined') {
+    return atob(str);
+  }
+  
+  // Manual base64 decoding for React Native
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+  let output = '';
+  str = String(str).replace(/=+$/, '');
+  
+  if (str.length % 4 === 1) {
+    throw new Error('Invalid base64 string');
+  }
+  
+  for (let bc = 0, bs = 0, buffer, i = 0; buffer = str.charAt(i++);) {
+    if (buffer === '=') break;
+    bs = bs << 6 | chars.indexOf(buffer);
+    if (bc++ === 3) {
+      output += String.fromCharCode((bs >> 16) & 255);
+      output += String.fromCharCode((bs >> 8) & 255);
+      output += String.fromCharCode(bs & 255);
+      bs = 0;
+      bc = 0;
+    }
+  }
+  
+  if (bc === 1) {
+    bs = bs << 6;
+    output += String.fromCharCode((bs >> 8) & 255);
+  } else if (bc === 2) {
+    bs = bs << 6;
+    output += String.fromCharCode((bs >> 16) & 255);
+  }
+  
+  return output;
+};
+
 export interface UploadedImage {
   url: string;
   path: string;
@@ -241,7 +279,7 @@ export const uploadImageToStorage = async (
           
           // Convert base64 to proper binary data for React Native
           // Use a more compatible approach for React Native
-          const binaryString = atob(base64);
+          const binaryString = atobPolyfill(base64);
           const bytes = new Uint8Array(binaryString.length);
           for (let i = 0; i < binaryString.length; i++) {
             bytes[i] = binaryString.charCodeAt(i);
