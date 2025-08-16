@@ -232,9 +232,84 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
   };
 
   // Handle photo management
-  const handleAddPhoto = () => {
-    // This will be handled by the PinEditorForm
-    setShowEditForm(true);
+  const handleAddPhoto = async () => {
+    try {
+      // Import the image picker functions
+      const { pickImages, takePhoto } = await import('../../api/utils/imageUpload');
+      
+      // Show options for camera or gallery
+      Alert.alert(
+        'Add Photo',
+        'Choose how you want to add a photo',
+        [
+          {
+            text: 'Camera',
+            onPress: async () => {
+              try {
+                const photoUri = await takePhoto();
+                if (photoUri) {
+                  await handlePhotoSelected(photoUri);
+                }
+              } catch (error) {
+                Alert.alert('Error', error instanceof Error ? error.message : 'Failed to take photo');
+              }
+            },
+          },
+          {
+            text: 'Gallery',
+            onPress: async () => {
+              try {
+                const selectedImages = await pickImages(1); // Only allow 1 photo at a time
+                if (selectedImages.length > 0) {
+                  await handlePhotoSelected(selectedImages[0]);
+                }
+              } catch (error) {
+                Alert.alert('Error', error instanceof Error ? error.message : 'Failed to pick image');
+              }
+            },
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load photo picker');
+    }
+  };
+
+  const handlePhotoSelected = async (photoUri: string) => {
+    if (!pinId) return;
+    
+    try {
+      // Import the upload function
+      const { uploadImageToStorage } = await import('../../api/utils/imageUpload');
+      
+      // Upload the photo
+      const uploadedImage = await uploadImageToStorage(photoUri, 'pins');
+      
+      // Get current photos and add the new one
+      const currentPhotos = getPhotos();
+      const updatedPhotos = [...currentPhotos, uploadedImage.url];
+      
+      // Update the pin with the new photo
+      await updatePin({
+        variables: {
+          input: {
+            id: pinId,
+            metadata: {
+              ...pin?.metadata,
+              photos: updatedPhotos,
+            },
+          },
+        },
+      });
+      
+      Alert.alert('Success', 'Photo added successfully!');
+    } catch (error) {
+      Alert.alert('Error', `Failed to upload photo: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const handleRemovePhoto = (index: number) => {
