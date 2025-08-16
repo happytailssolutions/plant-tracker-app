@@ -148,7 +148,7 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
       onError: (error) => {
         setSaveLoading(false);
         setSaveStage('idle');
-        Alert.alert('Error', `Failed to create pin: ${error.message}`);
+        Alert.alert('Error', `Failed to create plant: ${error.message}`);
       },
     }
   );
@@ -310,7 +310,7 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
     } catch (error) {
       setSaveLoading(false);
       setSaveStage('idle');
-      Alert.alert('Error', `Failed to create pin: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              Alert.alert('Error', `Failed to create plant: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -442,7 +442,7 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.title}>
-            {mode === 'create' ? 'Create Pin' : 'Edit Pin'}
+            {mode === 'create' ? 'Create Plant' : 'Edit Plant'}
           </Text>
           <TouchableOpacity
             onPress={handleSubmit}

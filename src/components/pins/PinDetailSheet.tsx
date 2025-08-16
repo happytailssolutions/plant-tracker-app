@@ -55,7 +55,7 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
       onCompleted: () => {
         setDeleteLoading(false);
         setShowDeleteDialog(false);
-        Alert.alert('Success', 'Pin deleted successfully!');
+        Alert.alert('Success', 'Plant deleted successfully!');
         onPinDeleted?.();
         onClose();
       },
@@ -557,13 +557,13 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                 {/* Actions */}
                 <View style={styles.actionsSection}>
                   <TouchableOpacity style={styles.actionButton} onPress={handleEditPin}>
-                    <Text style={styles.actionButtonText}>Edit Pin</Text>
+                    <Text style={styles.actionButtonText}>Edit Plant</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={[styles.actionButton, styles.deleteButton]} 
                     onPress={handleDeletePin}
                   >
-                    <Text style={styles.deleteButtonText}>Delete Pin</Text>
+                    <Text style={styles.deleteButtonText}>Delete Plant</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.actionButton, styles.secondaryAction]}>
                     <Text style={styles.secondaryActionText}>View on Map</Text>
@@ -572,7 +572,7 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
               </>
             ) : (
               <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>Pin not found</Text>
+                <Text style={styles.errorText}>Plant not found</Text>
               </View>
             )}
           </ScrollView>
@@ -596,6 +596,11 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
             tags: (pin.metadata as any)?.tags || [],
             photos: (pin.metadata as any)?.photos || [],
             isPublic: pin.isPublic,
+            plantingDate: (pin.metadata as any)?.plantingDate,
+            fertilizedDate: (pin.metadata as any)?.fertilizedDate,
+            pruningDate: (pin.metadata as any)?.pruningDate,
+            origin: (pin.metadata as any)?.origin,
+            notes: (pin.metadata as any)?.notes,
           }}
           latitude={pin.latitude}
           longitude={pin.longitude}
@@ -605,7 +610,7 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
         visible={showDeleteDialog}
-        title="Delete Pin"
+        title="Delete Plant"
         message={`Are you sure you want to delete "${pin?.name}"? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
