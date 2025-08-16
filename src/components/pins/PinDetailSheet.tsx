@@ -17,6 +17,7 @@ import { colors, typography, spacing, components } from '../../styles/theme';
 import { PinEditorForm } from './PinEditorForm';
 import { ConfirmationDialog } from '../common/ConfirmationDialog';
 import { TagBubbleList, TagInput, PhotoGallery, NotesHistory } from '../common';
+import { RemindersSection } from '../reminders';
 import { useMapStore } from '../../state/mapStore';
 import { getCurrentTags, generateTagFromName } from '../../utils/tagUtils';
 
@@ -580,6 +581,9 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                     onToggleEdit={() => setIsNotesEditing(!isNotesEditing)}
                   />
                 </View>
+
+                {/* Reminders */}
+                <RemindersSection plantId={pin.id} />
 
                 {/* Actions */}
                 <View style={styles.actionsSection}>
