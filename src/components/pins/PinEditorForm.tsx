@@ -359,14 +359,27 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
       setSaveLoading(true);
       setSaveStage('uploading');
 
-      // Step 1: Upload new images to Supabase Storage
-      let imageUrls: string[] = [];
-      if (formData.photos.length > 0) {
+      // Step 1: Separate existing photos (URLs) from new photos (file URIs)
+      const existingPhotos = formData.photos.filter(photo => photo.startsWith('http'));
+      const newPhotos = formData.photos.filter(photo => !photo.startsWith('http'));
+      
+      console.log('🔍 Update mode - Photo separation:', {
+        totalPhotos: formData.photos.length,
+        existingPhotos: existingPhotos.length,
+        newPhotos: newPhotos.length,
+        existingPhotoUrls: existingPhotos,
+        newPhotoUris: newPhotos
+      });
+      
+      let imageUrls: string[] = [...existingPhotos]; // Start with existing photos
+      
+      // Upload only new photos to Supabase Storage
+      if (newPhotos.length > 0) {
         try {
-          const uploadedImages = await uploadImagesToStorage(formData.photos);
-          imageUrls = uploadedImages.map(img => img.url);
+          const uploadedImages = await uploadImagesToStorage(newPhotos);
+          imageUrls = [...existingPhotos, ...uploadedImages.map(img => img.url)];
         } catch (error) {
-          Alert.alert('Error', 'Failed to upload images. Please try again.');
+          Alert.alert('Error', 'Failed to upload new images. Please try again.');
           setSaveLoading(false);
           setSaveStage('idle');
           return;
