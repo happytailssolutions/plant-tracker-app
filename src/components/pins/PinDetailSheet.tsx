@@ -109,11 +109,17 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
   const handleViewOnMap = () => {
     if (!pin) return;
     
+    console.log('🔍 View on Map clicked for pin:', pin.id);
+    
     // Use the map store to center on this pin
     centerOnPin(pin.id, pin.latitude, pin.longitude);
     
+    console.log('🔍 Map store updated, closing detail sheet...');
+    
     // Close the detail sheet first
     onClose();
+    
+    console.log('🔍 Detail sheet closed, navigating to map...');
     
     // Add a small delay to ensure the sheet closes before navigation
     setTimeout(() => {
