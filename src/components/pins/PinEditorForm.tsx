@@ -175,35 +175,70 @@ export const PinEditorForm: React.FC<PinEditorFormProps> = ({
 
   // Initialize form data when modal opens or initialData changes
   useEffect(() => {
-    if (visible && mode === 'create') {
-      // Always start with fresh form data for create mode
-      const freshFormData = {
-        name: '',
-        description: '',
-        pinType: 'Tree',
-        status: 'Growing',
-        projectId: projects.length > 0 ? projects[0].id : '',
-        tags: [],
-        photos: [],
-        isPublic: false,
-        // Reset new fields
-        plantingDate: undefined,
-        fertilizedDate: undefined,
-        pruningDate: undefined,
-        origin: undefined,
-        notes: {
-          entries: [],
-        },
-      };
-      
-      // Apply initialData on top of fresh form (if provided)
-      if (initialData) {
+    if (visible) {
+      if (mode === 'create') {
+        // Always start with fresh form data for create mode
+        const freshFormData = {
+          name: '',
+          description: '',
+          pinType: 'Tree',
+          status: 'Growing',
+          projectId: projects.length > 0 ? projects[0].id : '',
+          tags: [],
+          photos: [],
+          isPublic: false,
+          // Reset new fields
+          plantingDate: undefined,
+          fertilizedDate: undefined,
+          pruningDate: undefined,
+          origin: undefined,
+          notes: {
+            entries: [],
+          },
+        };
+        
+        // Apply initialData on top of fresh form (if provided)
+        if (initialData) {
+          setFormData({
+            ...freshFormData,
+            ...initialData,
+          });
+        } else {
+          setFormData(freshFormData);
+        }
+      } else if (mode === 'edit' && initialData) {
+        // For edit mode, use the initialData directly
+        console.log('🔍 Edit mode - initialData received:', initialData);
         setFormData({
-          ...freshFormData,
-          ...initialData,
+          name: initialData.name || '',
+          description: initialData.description || '',
+          pinType: initialData.pinType || 'Tree',
+          status: initialData.status || 'Growing',
+          projectId: initialData.projectId || '',
+          tags: initialData.tags || [],
+          photos: initialData.photos || [],
+          isPublic: initialData.isPublic || false,
+          plantingDate: initialData.plantingDate,
+          fertilizedDate: initialData.fertilizedDate,
+          pruningDate: initialData.pruningDate,
+          origin: initialData.origin,
+          notes: initialData.notes || { entries: [] },
         });
-      } else {
-        setFormData(freshFormData);
+        console.log('🔍 Edit mode - formData set to:', {
+          name: initialData.name || '',
+          description: initialData.description || '',
+          pinType: initialData.pinType || 'Tree',
+          status: initialData.status || 'Growing',
+          projectId: initialData.projectId || '',
+          tags: initialData.tags || [],
+          photos: initialData.photos || [],
+          isPublic: initialData.isPublic || false,
+          plantingDate: initialData.plantingDate,
+          fertilizedDate: initialData.fertilizedDate,
+          pruningDate: initialData.pruningDate,
+          origin: initialData.origin,
+          notes: initialData.notes || { entries: [] },
+        });
       }
     }
     setErrors({});
