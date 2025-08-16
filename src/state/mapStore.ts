@@ -49,6 +49,9 @@ interface MapState {
   setLastUsedPinType: (pinType: string) => void;
   enterPinCreation: () => void;
   exitPinCreation: () => void;
+  
+  // Pin Centering Actions
+  centerOnPin: (pinId: string, latitude: number, longitude: number) => void;
 }
 
 export const useMapStore = create<MapState>((set, get) => ({
@@ -176,5 +179,13 @@ export const useMapStore = create<MapState>((set, get) => ({
   exitPinCreation: () => 
     set({ 
       pinCreationMode: false
+    }),
+    
+  // Pin Centering Actions
+  centerOnPin: (pinId: string, latitude: number, longitude: number) => 
+    set({ 
+      selectedPinId: pinId,
+      autoCenterMode: 'project-pins',
+      isCentering: true,
     }),
 })); 

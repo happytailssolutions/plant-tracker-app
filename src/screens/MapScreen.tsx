@@ -405,6 +405,18 @@ export const MapScreen: React.FC = () => {
     setAutoCenterMode(null);
   }, [getCurrentLocation, setCentering, setAutoCenterMode]);
 
+  // Center map on a specific pin
+  const centerMapOnPin = useCallback((latitude: number, longitude: number) => {
+    // Use close zoom level for pin centering
+    const newRegion = createRegionFromCoordinates(latitude, longitude, 0.005);
+    setRegion(newRegion);
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(newRegion, 1000);
+    }
+    setCentering(false);
+    setAutoCenterMode(null);
+  }, [setCentering, setAutoCenterMode]);
+
   // Handle auto-centering based on mode
   useEffect(() => {
     if (!isCentering || !autoCenterMode) return;
@@ -417,6 +429,19 @@ export const MapScreen: React.FC = () => {
       centerMapOnUserLocation();
     }
   }, [isCentering, autoCenterMode, projectPinsData, centerMapOnProjectPins, centerMapOnUserLocation, selectedTags]);
+
+  // Handle centering on a specific pin
+  useEffect(() => {
+    if (selectedPinId && isCentering && autoCenterMode === 'project-pins') {
+      // Find the selected pin in the data
+      const selectedPin = data?.pins?.find(pin => pin.id === selectedPinId) || 
+                         projectPinsData?.pinsByProject?.find(pin => pin.id === selectedPinId);
+      
+      if (selectedPin) {
+        centerMapOnPin(selectedPin.latitude, selectedPin.longitude);
+      }
+    }
+  }, [selectedPinId, isCentering, autoCenterMode, data?.pins, projectPinsData?.pinsByProject, centerMapOnPin]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {

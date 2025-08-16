@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useQuery, useMutation } from '@apollo/client';
+import { useRouter } from 'expo-router';
 import { PIN_BY_ID_QUERY, PinByIdQueryResponse } from '../../api/queries/pinQueries';
 import { DELETE_PIN_MUTATION, DeletePinMutationResponse, DeletePinMutationVariables, UPDATE_PIN_MUTATION, UpdatePinMutationResponse, UpdatePinMutationVariables } from '../../api/mutations/pinMutations';
 import { colors, typography, spacing, components } from '../../styles/theme';
@@ -40,8 +41,12 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
   const [showTagInput, setShowTagInput] = useState(false);
   const [isNotesEditing, setIsNotesEditing] = useState(false);
   
-  // Map store for tag navigation
+  // Router for navigation
+  const router = useRouter();
+  
+  // Map store for tag navigation and pin centering
   const setTagAndNavigate = useMapStore((state) => state.setTagAndNavigate);
+  const centerOnPin = useMapStore((state) => state.centerOnPin);
 
   const { data, loading, error, refetch } = useQuery<PinByIdQueryResponse>(PIN_BY_ID_QUERY, {
     variables: { id: pinId },
@@ -99,6 +104,19 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
 
   const handleDeletePin = () => {
     setShowDeleteDialog(true);
+  };
+
+  const handleViewOnMap = () => {
+    if (!pin) return;
+    
+    // Use the map store to center on this pin
+    centerOnPin(pin.id, pin.latitude, pin.longitude);
+    
+    // Close the detail sheet
+    onClose();
+    
+    // Navigate to the map tab
+    router.push('/(tabs)/explore');
   };
 
   const handleConfirmDelete = async () => {
@@ -565,7 +583,10 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                   >
                     <Text style={styles.deleteButtonText}>Delete Plant</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionButton, styles.secondaryAction]}>
+                  <TouchableOpacity 
+                    style={[styles.actionButton, styles.secondaryAction]}
+                    onPress={handleViewOnMap}
+                  >
                     <Text style={styles.secondaryActionText}>View on Map</Text>
                   </TouchableOpacity>
                 </View>
