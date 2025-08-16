@@ -196,7 +196,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   // Pin Centering Actions
   centerOnPin: (pinId: string, latitude: number, longitude: number) => 
     set({ 
-      selectedPinId: pinId,
+      selectedPinId: null, // Don't keep the pin selected when centering
       filteredPinId: pinId,
       autoCenterMode: 'project-pins',
       isCentering: true,

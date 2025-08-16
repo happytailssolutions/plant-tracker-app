@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
   },
   pinFilterText: {
     ...typography.textStyles.caption,
-    color: colors.primary.darkGreen,
+    color: colors.functional.error,
     fontWeight: typography.fontWeight.medium,
   },
   clearPinFilterButton: {
