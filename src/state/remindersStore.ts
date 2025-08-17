@@ -368,7 +368,7 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
       const { data } = await apolloClient.query<RemindersByPlantQueryResponse>({
         query: REMINDERS_BY_PLANT_QUERY,
         variables: { plantId },
-        fetchPolicy: 'cache-and-network',
+        fetchPolicy: 'cache-first',
       });
 
       setReminders(data.remindersByPlant);
@@ -388,7 +388,7 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
     try {
       const { data } = await apolloClient.query<ActiveRemindersQueryResponse>({
         query: ACTIVE_REMINDERS_QUERY,
-        fetchPolicy: 'cache-and-network',
+        fetchPolicy: 'cache-first',
       });
 
       setReminders(data.activeRemindersForUser);
@@ -408,7 +408,7 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
     try {
       const { data } = await apolloClient.query<OverdueRemindersQueryResponse>({
         query: OVERDUE_REMINDERS_QUERY,
-        fetchPolicy: 'cache-and-network',
+        fetchPolicy: 'cache-first',
       });
 
       setReminders(data.overdueRemindersForUser);
