@@ -1,6 +1,9 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
+
+// Check if we're in a development environment
+const __DEV__ = process.env.NODE_ENV === 'development';
 import { Reminder } from '../state/remindersStore';
 
 // Configure notification behavior
@@ -30,6 +33,13 @@ export class NotificationService {
    */
   async initialize(): Promise<string | null> {
     try {
+      // In development mode, skip native module requirements
+      if (__DEV__) {
+        console.log('Development mode: Skipping native notification setup');
+        this.expoPushToken = 'dev-token';
+        return 'dev-token';
+      }
+
       // Check if device supports notifications
       if (!Device.isDevice) {
         console.log('Must use physical device for Push Notifications');
@@ -71,6 +81,12 @@ export class NotificationService {
       return token;
     } catch (error) {
       console.error('Error initializing notifications:', error);
+      // In development, return a mock token instead of failing
+      if (__DEV__) {
+        console.log('Development fallback: Using mock token');
+        this.expoPushToken = 'dev-mock-token';
+        return 'dev-mock-token';
+      }
       return null;
     }
   }
@@ -90,6 +106,12 @@ export class NotificationService {
       // Only schedule notifications for ALERT type reminders
       if (reminder.notificationType !== 'ALERT') {
         return null;
+      }
+
+      // In development mode, just log and return mock ID
+      if (__DEV__) {
+        console.log(`[DEV] Would schedule notification for reminder: ${reminder.title}`);
+        return `dev-notification-${reminder.id}`;
       }
 
       const dueDate = new Date(reminder.dueDate);
@@ -129,6 +151,11 @@ export class NotificationService {
       return notificationId;
     } catch (error) {
       console.error('Error scheduling notification:', error);
+      // In development, return mock ID instead of failing
+      if (__DEV__) {
+        console.log(`[DEV] Fallback: Mock notification ID for reminder ${reminder.id}`);
+        return `dev-fallback-${reminder.id}`;
+      }
       return null;
     }
   }

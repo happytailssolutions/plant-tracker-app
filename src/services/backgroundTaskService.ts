@@ -1,5 +1,8 @@
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
+
+// Check if we're in a development environment
+const __DEV__ = process.env.NODE_ENV === 'development';
 import { useRemindersStore } from '../state/remindersStore';
 import { notificationService } from './notificationService';
 
@@ -71,6 +74,13 @@ export class BackgroundTaskService {
    */
   async registerBackgroundFetch(): Promise<boolean> {
     try {
+      // In development mode, skip background task registration
+      if (__DEV__) {
+        console.log('[DEV] Skipping background fetch registration in development');
+        this.isRegistered = true;
+        return true;
+      }
+
       // Check if already registered
       if (this.isRegistered) {
         console.log('Background fetch already registered');
@@ -96,6 +106,12 @@ export class BackgroundTaskService {
       return true;
     } catch (error) {
       console.error('Failed to register background fetch:', error);
+      // In development, don't fail
+      if (__DEV__) {
+        console.log('[DEV] Background fetch failed, but continuing in development mode');
+        this.isRegistered = true;
+        return true;
+      }
       return false;
     }
   }

@@ -61,6 +61,16 @@ export default {
           "googleServicesFile": "./google-services.json"
         }
       ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#4CAF50",
+          "sounds": ["./assets/sounds/notification.wav"]
+        }
+      ],
+      "expo-background-fetch",
+      "expo-task-manager",
       "expo-router"
     ]
   }
