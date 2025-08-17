@@ -1,4 +1,5 @@
-import { notificationService, backgroundTaskService } from './';
+import { notificationService } from './notificationService.dev';
+import { backgroundTaskService } from './backgroundTaskService.dev';
 import { useRemindersStore } from '../state/remindersStore';
 
 export class AppInitializationService {

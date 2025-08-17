@@ -16,6 +16,11 @@ export const REMINDERS_BY_PLANT_QUERY = gql`
       createdAt
       completedAt
       updatedAt
+      plant {
+        id
+        name
+        pinType
+      }
     }
   }
 `;
