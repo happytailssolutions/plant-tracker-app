@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apolloClient } from '../api/apollo-client';
-import { notificationService } from '../services/notificationService';
+import { notificationService } from '../services';
 import {
   REMINDERS_BY_PLANT_QUERY,
   ACTIVE_REMINDERS_QUERY,

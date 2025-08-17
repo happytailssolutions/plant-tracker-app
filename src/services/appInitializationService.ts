@@ -1,7 +1,5 @@
-import { notificationService } from './notificationService';
-import { backgroundTaskService } from './backgroundTaskService';
+import { notificationService, backgroundTaskService } from './';
 import { useRemindersStore } from '../state/remindersStore';
-import * as Notifications from 'expo-notifications';
 
 export class AppInitializationService {
   private static instance: AppInitializationService;
