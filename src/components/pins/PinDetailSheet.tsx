@@ -19,6 +19,7 @@ import { ConfirmationDialog } from '../common/ConfirmationDialog';
 import { TagBubbleList, TagInput, PhotoGallery, NotesHistory } from '../common';
 import { useMapStore } from '../../state/mapStore';
 import { getCurrentTags, generateTagFromName } from '../../utils/tagUtils';
+import RemindersSection from '../reminders/RemindersSection';
 
 interface PinDetailSheetProps {
   pinId: string | null;
@@ -579,6 +580,11 @@ export const PinDetailSheet: React.FC<PinDetailSheetProps> = ({
                     isEditing={isNotesEditing}
                     onToggleEdit={() => setIsNotesEditing(!isNotesEditing)}
                   />
+                </View>
+
+                {/* Reminders */}
+                <View style={styles.section}>
+                  <RemindersSection plantId={pin.id} />
                 </View>
 
                 {/* Actions */}

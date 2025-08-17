@@ -27,6 +27,10 @@ interface MapState {
   pinCreationMode: boolean;
   lastUsedPinType: string;
   
+  // Reminder Indicators State
+  pinsWithReminders: Set<string>;
+  pinsWithOverdueReminders: Set<string>;
+  
   // Actions
   setSelectedProject: (projectId: string | null) => void;
   setSelectedPin: (pinId: string | null) => void;
@@ -58,6 +62,13 @@ interface MapState {
   
   // Pin Filtering Actions
   setPinFilter: (pinId: string | null) => void;
+  
+  // Reminder Indicator Actions
+  setPinsWithReminders: (pinIds: string[]) => void;
+  setPinsWithOverdueReminders: (pinIds: string[]) => void;
+  addPinReminder: (pinId: string, isOverdue?: boolean) => void;
+  removePinReminder: (pinId: string) => void;
+  clearReminderIndicators: () => void;
 }
 
 export const useMapStore = create<MapState>((set, get) => ({
@@ -80,6 +91,10 @@ export const useMapStore = create<MapState>((set, get) => ({
   // Pin Creation Initial State
   pinCreationMode: false,
   lastUsedPinType: 'Tree',
+  
+  // Reminder Indicators Initial State
+  pinsWithReminders: new Set<string>(),
+  pinsWithOverdueReminders: new Set<string>(),
   
   // Actions
   setSelectedProject: (projectId: string | null) => 
@@ -210,5 +225,48 @@ export const useMapStore = create<MapState>((set, get) => ({
       // When filtering by pin, also set centering mode
       autoCenterMode: pinId ? 'project-pins' : null,
       isCentering: pinId ? true : false,
+    }),
+    
+  // Reminder Indicator Actions
+  setPinsWithReminders: (pinIds: string[]) => 
+    set({ pinsWithReminders: new Set(pinIds) }),
+    
+  setPinsWithOverdueReminders: (pinIds: string[]) => 
+    set({ pinsWithOverdueReminders: new Set(pinIds) }),
+    
+  addPinReminder: (pinId: string, isOverdue = false) => 
+    set((state) => {
+      const newPinsWithReminders = new Set(state.pinsWithReminders);
+      const newPinsWithOverdueReminders = new Set(state.pinsWithOverdueReminders);
+      
+      newPinsWithReminders.add(pinId);
+      if (isOverdue) {
+        newPinsWithOverdueReminders.add(pinId);
+      }
+      
+      return {
+        pinsWithReminders: newPinsWithReminders,
+        pinsWithOverdueReminders: newPinsWithOverdueReminders,
+      };
+    }),
+    
+  removePinReminder: (pinId: string) => 
+    set((state) => {
+      const newPinsWithReminders = new Set(state.pinsWithReminders);
+      const newPinsWithOverdueReminders = new Set(state.pinsWithOverdueReminders);
+      
+      newPinsWithReminders.delete(pinId);
+      newPinsWithOverdueReminders.delete(pinId);
+      
+      return {
+        pinsWithReminders: newPinsWithReminders,
+        pinsWithOverdueReminders: newPinsWithOverdueReminders,
+      };
+    }),
+    
+  clearReminderIndicators: () => 
+    set({ 
+      pinsWithReminders: new Set<string>(),
+      pinsWithOverdueReminders: new Set<string>(),
     }),
 })); 
