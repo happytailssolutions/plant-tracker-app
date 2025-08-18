@@ -2,7 +2,7 @@ import { gql } from '@apollo/client';
 
 // Query to get reminders for a specific plant
 export const REMINDERS_BY_PLANT_QUERY = gql`
-  query RemindersByPlant($plantId: String!) {
+  query RemindersByPlant($plantId: ID!) {
     remindersByPlant(plantId: $plantId) {
       id
       title
@@ -82,10 +82,10 @@ export interface Reminder {
   description?: string;
   dueDate: string;
   dueTime?: string;
-  notificationType: 'GENERAL' | 'WARNING' | 'ALERT';
-  status: 'ACTIVE' | 'COMPLETED' | 'DISMISSED' | 'OVERDUE';
+  notificationType: 'general' | 'warning' | 'alert';
+  status: 'active' | 'completed' | 'dismissed' | 'overdue';
   isRecurring: boolean;
-  recurringPattern?: 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+  recurringPattern?: 'weekly' | 'monthly' | 'yearly';
   createdAt: string;
   completedAt?: string;
   updatedAt: string;

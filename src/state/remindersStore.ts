@@ -35,10 +35,10 @@ export interface Reminder {
   description?: string;
   dueDate: string; // ISO date string
   dueTime?: string; // HH:MM format
-  notificationType: 'GENERAL' | 'WARNING' | 'ALERT';
-  status: 'ACTIVE' | 'COMPLETED' | 'DISMISSED' | 'OVERDUE';
+  notificationType: 'general' | 'warning' | 'alert';
+  status: 'active' | 'completed' | 'dismissed' | 'overdue';
   isRecurring: boolean;
-  recurringPattern?: 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+  recurringPattern?: 'weekly' | 'monthly' | 'yearly';
   createdAt: string;
   completedAt?: string;
   updatedAt: string;
@@ -327,7 +327,7 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
     const now = new Date();
     let dueDate = new Date();
     let title = '';
-    let notificationType: 'GENERAL' | 'WARNING' | 'ALERT' = 'WARNING';
+    let notificationType: 'general' | 'warning' | 'alert' = 'warning';
     
     switch (type) {
       case 'weekly':
@@ -345,7 +345,7 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
       case 'photo':
         dueDate.setFullYear(now.getFullYear() + 1);
         title = 'Update plant photo';
-        notificationType = 'GENERAL';
+        notificationType = 'general';
         break;
     }
     
@@ -371,10 +371,15 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
         fetchPolicy: 'cache-first',
       });
 
-      setReminders(data.remindersByPlant);
+      if (data?.remindersByPlant) {
+        setReminders(data.remindersByPlant);
+      } else {
+        setReminders([]);
+      }
     } catch (error) {
       console.error('Error fetching reminders by plant:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch reminders');
+      setReminders([]);
     } finally {
       setLoading(false);
     }
