@@ -43,14 +43,14 @@ export const UPDATE_REMINDER_MUTATION = gql`
 
 // Mutation to delete a reminder
 export const DELETE_REMINDER_MUTATION = gql`
-  mutation DeleteReminder($id: String!) {
+  mutation DeleteReminder($id: ID!) {
     deleteReminder(id: $id)
   }
 `;
 
 // Mutation to mark a reminder as completed
 export const MARK_REMINDER_COMPLETED_MUTATION = gql`
-  mutation MarkReminderAsCompleted($id: String!) {
+  mutation MarkReminderAsCompleted($id: ID!) {
     markReminderAsCompleted(id: $id) {
       id
       title
@@ -70,7 +70,7 @@ export const MARK_REMINDER_COMPLETED_MUTATION = gql`
 
 // Mutation to create a quick reminder
 export const CREATE_QUICK_REMINDER_MUTATION = gql`
-  mutation CreateQuickReminder($plantId: String!, $type: String!) {
+  mutation CreateQuickReminder($plantId: ID!, $type: String!) {
     createQuickReminder(plantId: $plantId, type: $type) {
       id
       title
