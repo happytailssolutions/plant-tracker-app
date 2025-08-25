@@ -75,9 +75,15 @@ const ReminderItem: React.FC<ReminderItemProps> = ({
     return ` at ${time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
-  const handleDeleteCompleted = () => {
+  const handleDeleteCompleted = async () => {
     if (reminder.status === 'COMPLETED') {
-      deleteCompletedReminder(reminder.id);
+      try {
+        await deleteCompletedReminder(reminder.id);
+        console.log('🧪 [DEV] Successfully deleted completed reminder');
+      } catch (error) {
+        console.error('🧪 [DEV] Error deleting completed reminder:', error);
+        // You could show a toast or alert here if you want
+      }
     }
   };
 

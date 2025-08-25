@@ -607,31 +607,55 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
   },
 
   // Delete completed reminder permanently
-  deleteCompletedReminder: (id: string) => 
-    set((state) => {
-      const reminder = state.reminders.find(r => r.id === id);
-      if (!reminder) return state;
-      
-      // Only allow deletion of completed reminders
-      if (reminder.status !== 'COMPLETED') {
-        console.warn('🧪 [DEV] Cannot delete non-completed reminder:', reminder.status);
-        return state;
-      }
-      
-      const newReminders = state.reminders.filter(r => r.id !== id);
-      const updatedRemindersByPlant = { ...state.remindersByPlant };
-      
-      // Extract plantId from nested plant.id since GraphQL doesn't have root-level plantId
-      const plantId = reminder.plant?.id || reminder.plantId;
-      
-      if (plantId && updatedRemindersByPlant[plantId]) {
-        updatedRemindersByPlant[plantId] = 
-          updatedRemindersByPlant[plantId].filter(r => r.id !== id);
-      }
-      
-      return {
-        reminders: newReminders,
-        remindersByPlant: updatedRemindersByPlant,
-      };
-    }),
+  deleteCompletedReminder: async (id: string) => {
+    const { setLoading, setError } = get();
+    setLoading(true);
+    setError(null);
+
+    try {
+      // First, delete from backend
+      await apolloClient.mutate<DeleteReminderMutationResponse, DeleteReminderMutationVariables>({
+        mutation: DELETE_REMINDER_MUTATION,
+        variables: { id },
+      });
+
+      // Cancel any scheduled notifications for this reminder
+      await notificationService.cancelReminderNotifications(id);
+
+      // Then update local state
+      set((state) => {
+        const reminder = state.reminders.find(r => r.id === id);
+        if (!reminder) return state;
+        
+        // Only allow deletion of completed reminders
+        if (reminder.status !== 'COMPLETED') {
+          console.warn('🧪 [DEV] Cannot delete non-completed reminder:', reminder.status);
+          return state;
+        }
+        
+        const newReminders = state.reminders.filter(r => r.id !== id);
+        const updatedRemindersByPlant = { ...state.remindersByPlant };
+        
+        // Extract plantId from nested plant.id since GraphQL doesn't have root-level plantId
+        const plantId = reminder.plant?.id || reminder.plantId;
+        
+        if (plantId && updatedRemindersByPlant[plantId]) {
+          updatedRemindersByPlant[plantId] = 
+            updatedRemindersByPlant[plantId].filter(r => r.id !== id);
+        }
+        
+        return {
+          reminders: newReminders,
+          remindersByPlant: updatedRemindersByPlant,
+        };
+      });
+
+      console.log('🧪 [DEV] Successfully deleted completed reminder:', id);
+    } catch (error) {
+      console.error('🧪 [DEV] Error deleting completed reminder:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete reminder');
+    } finally {
+      setLoading(false);
+    }
+  },
 }));
