@@ -136,11 +136,21 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
     
     // Group reminders by plantId for efficient access
     reminders.forEach(reminder => {
-      if (!remindersByPlant[reminder.plantId]) {
-        remindersByPlant[reminder.plantId] = [];
+      // Extract plantId from nested plant.id since GraphQL doesn't have root-level plantId
+      const plantId = reminder.plant?.id || reminder.plantId;
+      
+      if (!plantId) {
+        console.warn('🧪 [DEV] Reminder missing plantId:', reminder);
+        return; // Skip reminders without plantId
       }
-      remindersByPlant[reminder.plantId].push(reminder);
+      
+      if (!remindersByPlant[plantId]) {
+        remindersByPlant[plantId] = [];
+      }
+      remindersByPlant[plantId].push(reminder);
     });
+    
+    console.log('🧪 [DEV] setReminders: Grouped reminders by plantId:', Object.keys(remindersByPlant));
     
     set({ 
       reminders, 
@@ -155,11 +165,19 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
       const newReminders = [...state.reminders, reminder];
       const updatedRemindersByPlant = { ...state.remindersByPlant };
       
-      if (!updatedRemindersByPlant[reminder.plantId]) {
-        updatedRemindersByPlant[reminder.plantId] = [];
+      // Extract plantId from nested plant.id since GraphQL doesn't have root-level plantId
+      const plantId = reminder.plant?.id || reminder.plantId;
+      
+      if (!plantId) {
+        console.warn('🧪 [DEV] addReminder: Reminder missing plantId:', reminder);
+        return state; // Return unchanged state
       }
-      updatedRemindersByPlant[reminder.plantId] = [
-        ...updatedRemindersByPlant[reminder.plantId],
+      
+      if (!updatedRemindersByPlant[plantId]) {
+        updatedRemindersByPlant[plantId] = [];
+      }
+      updatedRemindersByPlant[plantId] = [
+        ...updatedRemindersByPlant[plantId],
         reminder
       ];
       
@@ -180,8 +198,10 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
       
       // Update cache
       const updatedRemindersByPlant = { ...state.remindersByPlant };
-      const plantId = updatedReminder.plantId;
-      if (updatedRemindersByPlant[plantId]) {
+      // Extract plantId from nested plant.id since GraphQL doesn't have root-level plantId
+      const plantId = updatedReminder.plant?.id || updatedReminder.plantId;
+      
+      if (plantId && updatedRemindersByPlant[plantId]) {
         const plantReminderIndex = updatedRemindersByPlant[plantId].findIndex(r => r.id === id);
         if (plantReminderIndex !== -1) {
           updatedRemindersByPlant[plantId] = [...updatedRemindersByPlant[plantId]];
@@ -203,9 +223,12 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
       const newReminders = state.reminders.filter(r => r.id !== id);
       const updatedRemindersByPlant = { ...state.remindersByPlant };
       
-      if (updatedRemindersByPlant[reminder.plantId]) {
-        updatedRemindersByPlant[reminder.plantId] = 
-          updatedRemindersByPlant[reminder.plantId].filter(r => r.id !== id);
+      // Extract plantId from nested plant.id since GraphQL doesn't have root-level plantId
+      const plantId = reminder.plant?.id || reminder.plantId;
+      
+      if (plantId && updatedRemindersByPlant[plantId]) {
+        updatedRemindersByPlant[plantId] = 
+          updatedRemindersByPlant[plantId].filter(r => r.id !== id);
       }
       
       return {
