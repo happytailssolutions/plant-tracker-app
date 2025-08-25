@@ -181,6 +181,8 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
         reminder
       ];
       
+      console.log('🧪 [DEV] addReminder: Added reminder to plantId:', plantId);
+      
       return {
         reminders: newReminders,
         remindersByPlant: updatedRemindersByPlant,
@@ -458,7 +460,7 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
   },
 
   createReminderAPI: async (data: CreateReminderData): Promise<Reminder> => {
-    const { setLoading, setError, addReminder } = get();
+    const { setLoading, setError, addReminder, fetchRemindersByPlant } = get();
     setLoading(true);
     setError(null);
 
@@ -478,6 +480,13 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
           } else {
             await notificationService.scheduleReminderNotification(result.createReminder);
           }
+        }
+        
+        // Refresh the reminders list to trigger UI update
+        const plantId = result.createReminder.plant?.id || data.plantId;
+        if (plantId) {
+          console.log('🧪 [DEV] createReminderAPI: Refreshing reminders for plantId:', plantId);
+          await fetchRemindersByPlant(plantId);
         }
         
         return result.createReminder;
