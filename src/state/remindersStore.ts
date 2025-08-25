@@ -226,7 +226,10 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
   // Plant-specific getters
   getRemindersByPlant: (plantId: string) => {
     const state = get();
-    return state.remindersByPlant[plantId] || [];
+    const reminders = state.remindersByPlant[plantId] || [];
+    console.log('🧪 [DEV] getRemindersByPlant for plantId:', plantId, 'returning:', reminders.length, 'reminders');
+    console.log('🧪 [DEV] Available plantIds in cache:', Object.keys(state.remindersByPlant));
+    return reminders;
   },
   
   getActiveRemindersByPlant: (plantId: string) => {
@@ -364,20 +367,26 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
     setLoading(true);
     setError(null);
 
+    console.log('🧪 [DEV] fetchRemindersByPlant called for plantId:', plantId);
+
     try {
       const { data } = await apolloClient.query<RemindersByPlantQueryResponse>({
         query: REMINDERS_BY_PLANT_QUERY,
         variables: { plantId },
-        fetchPolicy: 'cache-first',
+        fetchPolicy: 'network-only', // Force fresh data
       });
 
+      console.log('🧪 [DEV] GraphQL response data:', JSON.stringify(data, null, 2));
+
       if (data?.remindersByPlant) {
+        console.log('🧪 [DEV] Setting reminders:', data.remindersByPlant.length, 'reminders');
         setReminders(data.remindersByPlant);
       } else {
+        console.log('🧪 [DEV] No reminders data, setting empty array');
         setReminders([]);
       }
     } catch (error) {
-      console.error('Error fetching reminders by plant:', error);
+      console.error('🧪 [DEV] Error fetching reminders by plant:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch reminders');
       setReminders([]);
     } finally {
