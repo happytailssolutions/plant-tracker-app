@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors, typography, spacing } from '../../styles/theme';
+import { useRemindersStore } from '../../state/remindersStore';
 
 interface ReminderItemProps {
   reminder: {
@@ -23,6 +24,8 @@ const ReminderItem: React.FC<ReminderItemProps> = ({
   onComplete,
   onDismiss,
 }) => {
+  const { deleteCompletedReminder } = useRemindersStore();
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'ALERT':
@@ -72,6 +75,12 @@ const ReminderItem: React.FC<ReminderItemProps> = ({
     return ` at ${time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
+  const handleDeleteCompleted = () => {
+    if (reminder.status === 'COMPLETED') {
+      deleteCompletedReminder(reminder.id);
+    }
+  };
+
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.leftSection}>
@@ -101,9 +110,12 @@ const ReminderItem: React.FC<ReminderItemProps> = ({
           </>
         )}
         {reminder.status === 'COMPLETED' && (
-          <View style={[styles.statusBadge, { backgroundColor: colors.functional.success }]}>
+          <TouchableOpacity 
+            style={[styles.statusBadge, { backgroundColor: colors.functional.success }]}
+            onPress={handleDeleteCompleted}
+          >
             <Text style={styles.statusText}>Done</Text>
-          </View>
+          </TouchableOpacity>
         )}
         {reminder.status === 'OVERDUE' && (
           <View style={[styles.statusBadge, { backgroundColor: colors.functional.error }]}>

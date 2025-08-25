@@ -605,4 +605,33 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
       setLoading(false);
     }
   },
+
+  // Delete completed reminder permanently
+  deleteCompletedReminder: (id: string) => 
+    set((state) => {
+      const reminder = state.reminders.find(r => r.id === id);
+      if (!reminder) return state;
+      
+      // Only allow deletion of completed reminders
+      if (reminder.status !== 'COMPLETED') {
+        console.warn('🧪 [DEV] Cannot delete non-completed reminder:', reminder.status);
+        return state;
+      }
+      
+      const newReminders = state.reminders.filter(r => r.id !== id);
+      const updatedRemindersByPlant = { ...state.remindersByPlant };
+      
+      // Extract plantId from nested plant.id since GraphQL doesn't have root-level plantId
+      const plantId = reminder.plant?.id || reminder.plantId;
+      
+      if (plantId && updatedRemindersByPlant[plantId]) {
+        updatedRemindersByPlant[plantId] = 
+          updatedRemindersByPlant[plantId].filter(r => r.id !== id);
+      }
+      
+      return {
+        reminders: newReminders,
+        remindersByPlant: updatedRemindersByPlant,
+      };
+    }),
 }));
