@@ -7,7 +7,6 @@ import { jwtDecode } from 'jwt-decode';
 
 // Create the http link pointing to your backend's GraphQL endpoint
 const graphqlUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/graphql';
-console.log('🔗 Apollo Client connecting to:', graphqlUrl);
 
 const httpLink = createHttpLink({
   uri: graphqlUrl,
@@ -30,11 +29,9 @@ const authLink = setContext(async (_, { headers }) => {
   // Asynchronously get the token from the auth store
   const token = useAuthStore.getState().token;
   
-  console.log('🔐 Auth token being sent:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
-  
   // Check if token is expired before sending
   if (token && isTokenExpired(token)) {
-    console.log('🔐 Token is expired, will trigger refresh on next request');
+    // Token is expired, will trigger refresh on next request
   }
   
   // Return the headers to the context so httpLink can read them
@@ -62,7 +59,7 @@ const errorLink = onError(({ networkError, graphQLErrors, operation, forward }) 
     );
     
     if (hasUnauthorizedError) {
-      console.log('🔄 Detected 401 error, token may be expired');
+      // Detected 401 error, token may be expired
       // You can trigger a token refresh here if needed
       // For now, we'll let the app handle it through the auth hook
     }

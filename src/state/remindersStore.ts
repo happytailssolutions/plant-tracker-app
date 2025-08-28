@@ -140,7 +140,7 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
       const plantId = reminder.plant?.id || reminder.plantId;
       
       if (!plantId) {
-        console.warn('🧪 [DEV] Reminder missing plantId:', reminder);
+        console.warn('Reminder missing plantId:', reminder);
         return; // Skip reminders without plantId
       }
       
@@ -149,8 +149,6 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
       }
       remindersByPlant[plantId].push(reminder);
     });
-    
-    console.log('🧪 [DEV] setReminders: Grouped reminders by plantId:', Object.keys(remindersByPlant));
     
     set({ 
       reminders, 
@@ -169,7 +167,7 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
       const plantId = reminder.plant?.id || reminder.plantId;
       
       if (!plantId) {
-        console.warn('🧪 [DEV] addReminder: Reminder missing plantId:', reminder);
+        console.warn('addReminder: Reminder missing plantId:', reminder);
         return state; // Return unchanged state
       }
       
@@ -180,8 +178,6 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
         ...updatedRemindersByPlant[plantId],
         reminder
       ];
-      
-      console.log('🧪 [DEV] addReminder: Added reminder to plantId:', plantId);
       
       return {
         reminders: newReminders,
@@ -252,8 +248,6 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
   getRemindersByPlant: (plantId: string) => {
     const state = get();
     const reminders = state.remindersByPlant[plantId] || [];
-    console.log('🧪 [DEV] getRemindersByPlant for plantId:', plantId, 'returning:', reminders.length, 'reminders');
-    console.log('🧪 [DEV] Available plantIds in cache:', Object.keys(state.remindersByPlant));
     return reminders;
   },
   
@@ -392,8 +386,6 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
     setLoading(true);
     setError(null);
 
-    console.log('🧪 [DEV] fetchRemindersByPlant called for plantId:', plantId);
-
     try {
       const { data } = await apolloClient.query<RemindersByPlantQueryResponse>({
         query: REMINDERS_BY_PLANT_QUERY,
@@ -401,17 +393,13 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
         fetchPolicy: 'network-only', // Force fresh data
       });
 
-      console.log('🧪 [DEV] GraphQL response data:', JSON.stringify(data, null, 2));
-
       if (data?.remindersByPlant) {
-        console.log('🧪 [DEV] Setting reminders:', data.remindersByPlant.length, 'reminders');
         setReminders(data.remindersByPlant);
       } else {
-        console.log('🧪 [DEV] No reminders data, setting empty array');
         setReminders([]);
       }
     } catch (error) {
-      console.error('🧪 [DEV] Error fetching reminders by plant:', error);
+      console.error('Error fetching reminders by plant:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch reminders');
       setReminders([]);
     } finally {
@@ -485,7 +473,6 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
         // Refresh the reminders list to trigger UI update
         const plantId = result.createReminder.plant?.id || data.plantId;
         if (plantId) {
-          console.log('🧪 [DEV] createReminderAPI: Refreshing reminders for plantId:', plantId);
           await fetchRemindersByPlant(plantId);
         }
         
@@ -638,7 +625,7 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
         
         // Only allow deletion of completed reminders
         if (reminder.status !== 'COMPLETED') {
-          console.warn('🧪 [DEV] Cannot delete non-completed reminder:', reminder.status);
+          console.warn('Cannot delete non-completed reminder:', reminder.status);
           return state;
         }
         
@@ -659,9 +646,8 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
         };
       });
 
-      console.log('🧪 [DEV] Successfully deleted completed reminder:', id);
     } catch (error) {
-      console.error('🧪 [DEV] Error deleting completed reminder:', error);
+      console.error('Error deleting completed reminder:', error);
       setError(error instanceof Error ? error.message : 'Failed to delete reminder');
     } finally {
       setLoading(false);

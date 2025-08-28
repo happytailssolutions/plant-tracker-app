@@ -31,16 +31,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   
   // Actions
   setToken: (token: string, user?: User) => {
-    console.log('🔐 Setting auth token:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
-    if (__DEV__) {
-      // Development-only: log full token to help with debugging GraphQL auth in playground
-      try {
-        // Avoid flooding logs if token is extremely long; print length as well
-        console.log(`🔐 [DEV] Full auth token (${token.length} chars):`, token);
-      } catch (_) {
-        // noop
-      }
-    }
     return set((state) => ({
       token,
       isAuthenticated: true,

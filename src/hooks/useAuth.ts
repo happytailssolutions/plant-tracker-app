@@ -31,7 +31,6 @@ const isTokenExpired = (token: string): boolean => {
 // Token refresh helper
 const refreshToken = async (): Promise<string | null> => {
   try {
-    console.log('🔄 Attempting to refresh token...');
     const { data, error } = await supabase.auth.refreshSession();
     
     if (error) {
@@ -40,7 +39,6 @@ const refreshToken = async (): Promise<string | null> => {
     }
     
     if (data.session?.access_token) {
-      console.log('🔄 Token refreshed successfully');
       return data.session.access_token;
     }
     
@@ -58,38 +56,30 @@ export const useAuth = () => {
   const { setToken, clearAuth, isAuthenticated, setAuthInitialized } = useAuthStore();
 
   const initializeAuth = useCallback(async () => {
-    console.log('useAuth: Starting auth initialization.');
     try {
       const storedToken = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
-      console.log('useAuth: Got token from SecureStore:', storedToken ? 'found' : 'not found');
       
       const storedUserData = await SecureStore.getItemAsync(USER_DATA_KEY);
-      console.log('useAuth: Got user data from SecureStore:', storedUserData ? 'found' : 'not found');
       
       if (storedToken && storedUserData) {
         // Check if token is expired
         if (isTokenExpired(storedToken)) {
-          console.log('useAuth: Stored token is expired, attempting refresh...');
           const refreshedToken = await refreshToken();
           
           if (refreshedToken) {
             const user = JSON.parse(storedUserData);
-            console.log('useAuth: Token refreshed, restoring session for user:', user.email);
             await SecureStore.setItemAsync(AUTH_TOKEN_KEY, refreshedToken);
             setToken(refreshedToken, user);
           } else {
-            console.log('useAuth: Token refresh failed, clearing auth...');
             await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
             await SecureStore.deleteItemAsync(USER_DATA_KEY);
             clearAuth();
           }
         } else {
           const user = JSON.parse(storedUserData);
-          console.log('useAuth: Token is valid, restoring session for user:', user.email);
           setToken(storedToken, user);
         }
       } else {
-        console.log('useAuth: No stored token or user data.');
         clearAuth();
       }
     } catch (err) {
@@ -99,35 +89,26 @@ export const useAuth = () => {
       clearAuth();
     } finally {
       setAuthInitialized(true);
-      console.log('useAuth: Auth initialization finished.');
     }
   }, [setToken, clearAuth, setAuthInitialized]);
 
   const signInWithGoogle = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    console.log('useAuth: Starting Google Sign-In process.');
     
     try {
-      console.log('useAuth: Checking for Google Play Services.');
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      console.log('useAuth: Google Play Services are available.');
       
-      console.log('useAuth: Initiating Google Sign-In prompt.');
       const { user: googleUser } = await GoogleSignin.signIn();
-      console.log('useAuth: Google Sign-In successful. User:', googleUser.email);
       
-      console.log('useAuth: Getting tokens from Google.');
       const { idToken } = await GoogleSignin.getTokens();
       
       if (!idToken) {
         console.error('useAuth: Failed to get ID token from Google.');
         throw new Error('Failed to get ID token from Google Sign-In');
       }
-      console.log('useAuth: Successfully received ID token from Google.');
 
       const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
-      console.log(`useAuth: Attempting to sign in to Supabase at ${supabaseUrl}`);
       const { data, error: supabaseError } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
@@ -137,33 +118,22 @@ export const useAuth = () => {
         console.error('useAuth: Supabase sign-in error:', JSON.stringify(supabaseError, null, 2));
         throw supabaseError;
       }
-      console.log('useAuth: Supabase sign-in successful.');
 
       if (!data.session || !data.user) {
         console.error('useAuth: No session or user data returned from Supabase.');
         throw new Error('No session or user data returned from Supabase');
       }
-      console.log('useAuth: Supabase returned session and user data.');
 
       const userData = {
         id: data.user.id,
         email: data.user.email || googleUser.email || '',
         name: data.user.user_metadata?.full_name || googleUser.name || '',
       };
-      console.log('useAuth: Constructed user data:', userData);
-
-      console.log('useAuth: Storing auth token and user data in SecureStore.');
-      console.log('useAuth: Access token type:', typeof data.session.access_token);
-      console.log('useAuth: Access token length:', data.session.access_token?.length);
-      console.log('useAuth: Access token preview:', data.session.access_token?.substring(0, 20) + '...');
       
       await SecureStore.setItemAsync(AUTH_TOKEN_KEY, data.session.access_token);
       await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(userData));
-      console.log('useAuth: Storage successful.');
       
-      console.log('useAuth: Updating auth store state.');
       setToken(data.session.access_token, userData);
-      console.log('useAuth: Google Sign-In process completed successfully.');
 
     } catch (err: any) {
       console.error('Google Sign-In error:', err);
@@ -201,12 +171,10 @@ export const useAuth = () => {
     const currentToken = useAuthStore.getState().token;
     
     if (!currentToken) {
-      console.log('🔄 No token to refresh');
       return false;
     }
     
     if (isTokenExpired(currentToken)) {
-      console.log('🔄 Token is expired, refreshing...');
       const refreshedToken = await refreshToken();
       
       if (refreshedToken) {
@@ -214,11 +182,9 @@ export const useAuth = () => {
         if (user) {
           await SecureStore.setItemAsync(AUTH_TOKEN_KEY, refreshedToken);
           setToken(refreshedToken, user);
-          console.log('🔄 Token refreshed and updated');
           return true;
         }
       } else {
-        console.log('🔄 Token refresh failed, signing out...');
         await signOut();
         return false;
       }
