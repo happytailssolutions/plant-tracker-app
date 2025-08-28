@@ -83,7 +83,7 @@ interface RemindersState {
   
   // Actions
   setReminders: (reminders: Reminder[]) => void;
-  addReminder: (reminder: Reminder) => void;
+  addReminder: (reminder: Reminder, plantId?: string) => void;
   updateReminder: (id: string, updates: Partial<Reminder>) => void;
   removeReminder: (id: string) => void;
   setLoading: (isLoading: boolean) => void;
@@ -158,24 +158,24 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
     });
   },
   
-  addReminder: (reminder: Reminder) => 
+  addReminder: (reminder: Reminder, plantId?: string) => 
     set((state) => {
       const newReminders = [...state.reminders, reminder];
       const updatedRemindersByPlant = { ...state.remindersByPlant };
       
-      // Extract plantId from nested plant.id since GraphQL doesn't have root-level plantId
-      const plantId = reminder.plant?.id || reminder.plantId;
+      // Extract plantId from nested plant.id or use the provided plantId parameter
+      const reminderPlantId = reminder.plant?.id || plantId || reminder.plantId;
       
-      if (!plantId) {
+      if (!reminderPlantId) {
         console.warn('addReminder: Reminder missing plantId:', reminder);
         return state; // Return unchanged state
       }
       
-      if (!updatedRemindersByPlant[plantId]) {
-        updatedRemindersByPlant[plantId] = [];
+      if (!updatedRemindersByPlant[reminderPlantId]) {
+        updatedRemindersByPlant[reminderPlantId] = [];
       }
-      updatedRemindersByPlant[plantId] = [
-        ...updatedRemindersByPlant[plantId],
+      updatedRemindersByPlant[reminderPlantId] = [
+        ...updatedRemindersByPlant[reminderPlantId],
         reminder
       ];
       
@@ -459,7 +459,7 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
       });
 
       if (result?.createReminder) {
-        addReminder(result.createReminder);
+        addReminder(result.createReminder, data.plantId);
         
         // Schedule notification for ALERT type reminders
         if (result.createReminder.notificationType === 'ALERT') {
@@ -578,7 +578,7 @@ export const useRemindersStore = create<RemindersState>((set, get) => ({
       });
 
       if (result?.createQuickReminder) {
-        addReminder(result.createQuickReminder);
+        addReminder(result.createQuickReminder, plantId);
         
         // Schedule notification for ALERT type reminders
         if (result.createQuickReminder.notificationType === 'ALERT') {
