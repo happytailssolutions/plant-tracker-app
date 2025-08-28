@@ -2,20 +2,6 @@ if (process.env.EAS_BUILD !== 'true') {
   require('dotenv').config();
 }
 
-// Add a warning about cleartext traffic for production builds
-console.warn(
-  'WARNING: The `usesCleartextTraffic` flag is enabled for Android in `app.config.js`. This is insecure and intended for development only. Remember to set this to `false` before creating a production build.'
-);
-
-// Debug: log environment variables
-console.log('Environment variables check:');
-console.log('EXPO_PUBLIC_SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
-console.log('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID:', process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
-console.log('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY:', process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ? 'SET' : 'NOT SET');
-console.log('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY length:', process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.length || 0);
-console.log('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY starts with:', process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.substring(0, 10) || 'N/A');
-console.log('EXPO_PUBLIC_GRAPHQL_URL:', process.env.EXPO_PUBLIC_GRAPHQL_URL || 'NOT SET');
-
 export default {
   expo: {
     name: "Plant Tracker",

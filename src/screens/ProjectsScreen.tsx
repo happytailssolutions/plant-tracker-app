@@ -29,10 +29,10 @@ export const ProjectsScreen: React.FC = () => {
   const { data, loading, error, refetch } = useQuery<MyProjectsQueryResponse>(MY_PROJECTS_QUERY, {
     fetchPolicy: 'cache-and-network',
     onError: async (error) => {
-      console.error('🚨 Projects query error:', error);
-      console.error('🚨 Error message:', error.message);
-      console.error('🚨 Error networkError:', error.networkError);
-      console.error('🚨 Error graphQLErrors:', error.graphQLErrors);
+      console.error('Projects query error:', error);
+      console.error('Error message:', error.message);
+      console.error('Error networkError:', error.networkError);
+      console.error('Error graphQLErrors:', error.graphQLErrors);
       
       // Check if it's an authentication error
       const isAuthError = error.graphQLErrors?.some(
@@ -41,20 +41,17 @@ export const ProjectsScreen: React.FC = () => {
       );
       
       if (isAuthError) {
-        console.log('🔄 Authentication error detected, attempting token refresh...');
+        console.log('Authentication error detected, attempting token refresh...');
         const refreshSuccess = await handleTokenRefresh();
         
         if (refreshSuccess) {
-          console.log('🔄 Token refreshed, retrying query...');
+          console.log('Token refreshed, retrying query...');
           refetch();
         } else {
-          console.log('🔄 Token refresh failed, user needs to re-authenticate');
+          console.log('Token refresh failed, user needs to re-authenticate');
           // You could redirect to login here if needed
         }
       }
-    },
-    onCompleted: (data) => {
-      console.log('✅ Projects query completed:', data);
     },
   });
 

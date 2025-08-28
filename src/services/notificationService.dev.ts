@@ -15,7 +15,6 @@ export class NotificationService {
   }
 
   async initialize(): Promise<string | null> {
-    console.log('[DEV] Notification service initialized in development mode');
     this.expoPushToken = 'dev-token';
     return 'dev-token';
   }
@@ -25,43 +24,38 @@ export class NotificationService {
   }
 
   async scheduleReminderNotification(reminder: Reminder): Promise<string | null> {
-    console.log(`[DEV] Would schedule notification for reminder: ${reminder.title}`);
     return `dev-notification-${reminder.id}`;
   }
 
   async cancelNotification(notificationId: string): Promise<void> {
-    console.log(`[DEV] Would cancel notification: ${notificationId}`);
+    // Would cancel notification in production
   }
 
   async cancelReminderNotifications(reminderId: string): Promise<void> {
-    console.log(`[DEV] Would cancel all notifications for reminder: ${reminderId}`);
+    // Would cancel all notifications for reminder in production
   }
 
   async sendImmediateNotification(title: string, body: string, data?: any): Promise<void> {
-    console.log(`[DEV] Would send immediate notification: ${title} - ${body}`);
+    // Would send immediate notification in production
   }
 
   addNotificationReceivedListener(handler: any): any {
-    console.log('[DEV] Would add notification received listener');
-    return { remove: () => console.log('[DEV] Listener removed') };
+    return { remove: () => {} };
   }
 
   addNotificationResponseReceivedListener(handler: any): any {
-    console.log('[DEV] Would add notification response listener');
-    return { remove: () => console.log('[DEV] Listener removed') };
+    return { remove: () => {} };
   }
 
   async getScheduledNotifications(): Promise<any[]> {
-    console.log('[DEV] Would get scheduled notifications');
     return [];
   }
 
   async clearAllNotifications(): Promise<void> {
-    console.log('[DEV] Would clear all notifications');
+    // Would clear all notifications in production
   }
 
   async scheduleRecurringNotification(reminder: Reminder): Promise<string[]> {
-    console.log(`[DEV] Would schedule recurring notifications for: ${reminder.title}`);
     return [`dev-recurring-${reminder.id}-1`, `dev-recurring-${reminder.id}-2`];
   }
 }
