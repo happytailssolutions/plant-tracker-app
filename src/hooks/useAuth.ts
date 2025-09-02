@@ -7,11 +7,22 @@ import Constants from 'expo-constants';
 import { jwtDecode } from 'jwt-decode';
 
 // Initialize Google Sign-In
-GoogleSignin.configure({
-  webClientId: Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  offlineAccess: true,
-  iosClientId: Constants.expoConfig?.extra?.EXPO_PUBLIC_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
-});
+try {
+  const webClientId = Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  const iosClientId = Constants.expoConfig?.extra?.EXPO_PUBLIC_IOS_CLIENT_ID;
+  
+  if (!webClientId) {
+    console.warn('Google Sign-In: webClientId not found in configuration');
+  }
+  
+  GoogleSignin.configure({
+    webClientId,
+    offlineAccess: true,
+    iosClientId,
+  });
+} catch (error) {
+  console.error('Failed to configure Google Sign-In:', error);
+}
 
 const AUTH_TOKEN_KEY = 'auth_token';
 const USER_DATA_KEY = 'user_data';
@@ -97,18 +108,26 @@ export const useAuth = () => {
     setError(null);
     
     try {
+      console.log('🔐 Starting Google Sign-In process...');
+      
+      // Log configuration
+      const webClientId = Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+      console.log('🔐 Web Client ID configured:', webClientId ? 'Yes' : 'No');
+      
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      console.log('🔐 Play Services check passed');
       
       const { user: googleUser } = await GoogleSignin.signIn();
+      console.log('🔐 Google Sign-In successful, user:', googleUser.email);
       
       const { idToken } = await GoogleSignin.getTokens();
+      console.log('🔐 ID Token obtained:', idToken ? 'Yes' : 'No');
       
       if (!idToken) {
         console.error('useAuth: Failed to get ID token from Google.');
         throw new Error('Failed to get ID token from Google Sign-In');
       }
 
-      const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
       const { data, error: supabaseError } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
@@ -136,8 +155,17 @@ export const useAuth = () => {
       setToken(data.session.access_token, userData);
 
     } catch (err: any) {
-      console.error('Google Sign-In error:', err);
-      console.error('Full Google Sign-In error object:', JSON.stringify(err, null, 2));
+      console.error('🔐 Google Sign-In error:', err);
+      console.error('🔐 Error code:', err.code);
+      console.error('🔐 Error message:', err.message);
+      console.error('🔐 Full error object:', JSON.stringify(err, null, 2));
+      
+      // Log to Crashlytics for better debugging
+      try {
+        logger.logError(err, `Google Sign-In failed - Code: ${err.code}, Message: ${err.message}`);
+      } catch (loggerError) {
+        console.error('Failed to log to Crashlytics:', loggerError);
+      }
       
       if (err.code === statusCodes.SIGN_IN_CANCELLED) {
         setError('Sign-in was cancelled');
@@ -145,6 +173,10 @@ export const useAuth = () => {
         setError('Sign-in is already in progress');
       } else if (err.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         setError('Play Services are not available');
+      } else if (err.code === statusCodes.DEVELOPER_ERROR) {
+        console.error('🔐 DEVELOPER_ERROR - This usually means OAuth configuration issue');
+        console.error('🔐 Check your Google Cloud Console OAuth configuration');
+        setError('Authentication configuration error. Please contact support.');
       } else {
         setError(err.message || 'An unexpected error occurred during sign-in');
       }

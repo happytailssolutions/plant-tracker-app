@@ -43,3 +43,8 @@ app-example
 # native files
 /android
 /ios
+
+# build artifacts
+builds/
+*.apk
+*.aab

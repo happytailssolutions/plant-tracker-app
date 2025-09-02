@@ -1,26 +1,9 @@
 import { ApolloClient, InMemoryCache, ApolloLink, HttpLink } from '@apollo/client';
-import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { logger } from '../utils/logger';
-import { useAuthStore } from '../state/authStore';
-import Constants from 'expo-constants';
 
 const httpLink = new HttpLink({
-  uri: Constants.expoConfig?.extra?.EXPO_PUBLIC_GRAPHQL_URL
-});
-
-// Authentication link - adds Bearer token to requests
-const authLink = setContext((_, { headers }) => {
-  const token = useAuthStore.getState().token;
-  
-  logger.log(`Apollo: Setting auth headers, token present: ${!!token}`);
-  
-  return {
-    headers: {
-      ...headers,
-      authorization: token ? `Bearer ${token}` : "",
-    }
-  };
+  uri: process.env.EXPO_PUBLIC_GRAPHQL_URL
 });
 
 // Error handling link
@@ -34,7 +17,7 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
         operationName: operation.operationName,
       };
       
-      logger.logGraphQLError(operation.operationName, new Error(message));
+      logger.logError(new Error(message), `GraphQL Error: ${JSON.stringify(errorInfo)}`);
     });
   }
 
@@ -44,7 +27,7 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
 });
 
 export const client = new ApolloClient({
-  link: ApolloLink.from([authLink, errorLink, httpLink]),
+  link: ApolloLink.from([errorLink, httpLink]),
   cache: new InMemoryCache(),
   defaultOptions: {
     watchQuery: {

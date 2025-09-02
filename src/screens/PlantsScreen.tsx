@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { MY_PROJECTS_QUERY, MyProjectsQueryResponse } from '../api/queries/proje
 import { PinListItem } from '../components/pins/PinListItem';
 import { PinDetailSheet } from '../components/pins/PinDetailSheet';
 import { useMapStore } from '../state/mapStore';
+import { logger } from '../utils/logger';
 
 export const PlantsScreen: React.FC = () => {
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null);
@@ -36,8 +37,22 @@ export const PlantsScreen: React.FC = () => {
     }
   );
 
+  // Log screen navigation
+  useEffect(() => {
+    logger.logNavigation('PlantsScreen');
+    logger.log('PlantsScreen: Component mounted');
+  }, []);
+
   const { data: projectsData, loading: projectsLoading, error: projectsError } = useQuery<MyProjectsQueryResponse>(MY_PROJECTS_QUERY, {
     fetchPolicy: 'cache-and-network',
+    onError: (error) => {
+      logger.log('PlantsScreen: Projects query error occurred');
+      logger.logGraphQLError('MY_PROJECTS_QUERY_PlantsScreen', error);
+    },
+    onCompleted: (data) => {
+      const projectCount = data?.myProjects?.length || 0;
+      logger.log(`PlantsScreen: Successfully loaded ${projectCount} projects`);
+    }
   });
 
   const handlePinPress = (pin: Pin) => {

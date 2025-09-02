@@ -1,6 +1,15 @@
-if (process.env.EAS_BUILD !== 'true') {
-  require('dotenv').config();
-}
+const getEnvVars = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  return {
+    EXPO_PUBLIC_GRAPHQL_URL: process.env.EXPO_PUBLIC_GRAPHQL_URL,
+    EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+    APP_ENV: isProduction ? 'production' : 'development'
+  };
+};
 
 export default {
   expo: {
@@ -24,20 +33,11 @@ export default {
       bundleIdentifier: "com.planttracker"
     },
     extra: {
+      ...getEnvVars(),
       eas: {
         projectId: "51b53275-8950-4214-a50a-f645384abc10",
         owner: "nadavroz"
-      },
-      owner: "nadavroz",
-      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-      EXPO_PUBLIC_GRAPHQL_URL: process.env.EXPO_PUBLIC_GRAPHQL_URL,
-      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-      EXPO_PUBLIC_GOOGLE_CLIENT_SECRET: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_SECRET,
-      EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-      googleClientId: process.env.GOOGLE_CLIENT_ID,
-      googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      EXPO_PUBLIC_IOS_CLIENT_ID: process.env.EXPO_PUBLIC_IOS_CLIENT_ID
+      }
     },
     plugins: [
       [
@@ -47,14 +47,8 @@ export default {
           "googleServicesFile": "./google-services.json"
         }
       ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/notification-icon.png",
-          "color": "#4CAF50",
-          "sounds": ["./assets/sounds/notification.wav"]
-        }
-      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
       "expo-background-fetch",
       "expo-task-manager",
       "expo-router"

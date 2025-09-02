@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,8 @@ import { MY_PROJECTS_QUERY, MyProjectsQueryResponse, Project } from '../api/quer
 import { ProjectListItem } from '../components/projects';
 import { CreateProjectModal } from '../components/common';
 import { useMapStore } from '../state/mapStore';
+import { useAuthStore } from '../state/authStore';
+import { logger } from '../utils/logger';
 
 import { useAuth } from '../hooks/useAuth';
 
@@ -26,13 +28,77 @@ export const ProjectsScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const { handleTokenRefresh } = useAuth();
   
+  // Log screen navigation and test Crashlytics
+  useEffect(() => {
+    logger.logNavigation('ProjectsScreen');
+    logger.log('ProjectsScreen: Component mounted');
+    
+    // Log current auth state
+    const { token, user, isAuthenticated } = useAuthStore.getState();
+    logger.log(`ProjectsScreen: Auth state - isAuthenticated: ${isAuthenticated}, hasToken: ${!!token}, user: ${user?.email || 'none'}`);
+    logger.setCustomKey('has_token_on_mount', !!token);
+    logger.setCustomKey('is_authenticated_on_mount', isAuthenticated);
+    
+    // Test Crashlytics is working - this will force a test log
+    logger.setCustomKey('projects_screen_mounted', true);
+    logger.setCustomKey('projects_screen_mount_time', new Date().toISOString());
+    
+    // Send a test error to verify Crashlytics is working
+    const testError = new Error('CRASHLYTICS_TEST: ProjectsScreen mounted - this is a test error to verify logging works');
+    logger.logError(testError, 'ProjectsScreen: Crashlytics connectivity test');
+    
+    // Also test the logger directly
+    logger.log('ProjectsScreen: Testing direct Crashlytics logging');
+  }, []);
+  
+  // Log successful render with project data
+  useEffect(() => {
+    if (data && !loading) {
+      const projects = data?.myProjects || [];
+      logger.log(`ProjectsScreen: Successfully rendering ${projects.length} projects`);
+      logger.setCustomKey('current_projects_count', projects.length);
+      
+      if (projects.length === 0) {
+        logger.log('ProjectsScreen: User has no projects (empty state will be shown)');
+      }
+    }
+  }, [data, loading]);
+  
   const { data, loading, error, refetch } = useQuery<MyProjectsQueryResponse>(MY_PROJECTS_QUERY, {
     fetchPolicy: 'cache-and-network',
     onError: async (error) => {
-      console.error('Projects query error:', error);
-      console.error('Error message:', error.message);
-      console.error('Error networkError:', error.networkError);
-      console.error('Error graphQLErrors:', error.graphQLErrors);
+      // Enhanced error logging with Crashlytics
+      logger.log('ProjectsScreen: GraphQL query error occurred');
+      logger.logGraphQLError('MY_PROJECTS_QUERY', error);
+      
+      // Log detailed error information
+      logger.setCustomKey('error_message', error.message || 'Unknown error');
+      logger.setCustomKey('has_network_error', !!error.networkError);
+      logger.setCustomKey('has_graphql_errors', !!error.graphQLErrors?.length);
+      logger.setCustomKey('graphql_errors_count', error.graphQLErrors?.length || 0);
+      
+      // Log network error details if present
+      if (error.networkError) {
+        logger.setCustomKey('network_error_message', error.networkError.message || 'Unknown network error');
+        logger.setCustomKey('network_error_name', error.networkError.name || 'Unknown');
+        
+        // Log additional network error details
+        if ('statusCode' in error.networkError) {
+          logger.setCustomKey('network_error_status', (error.networkError as any).statusCode);
+        }
+        if ('result' in error.networkError) {
+          logger.setCustomKey('network_error_result', JSON.stringify((error.networkError as any).result));
+        }
+      }
+      
+      // Log GraphQL errors details if present
+      if (error.graphQLErrors?.length) {
+        error.graphQLErrors.forEach((gqlError, index) => {
+          logger.setCustomKey(`graphql_error_${index}_message`, gqlError.message);
+          logger.setCustomKey(`graphql_error_${index}_code`, gqlError.extensions?.code || 'NO_CODE');
+          logger.setCustomKey(`graphql_error_${index}_path`, JSON.stringify(gqlError.path || []));
+        });
+      }
       
       // Check if it's an authentication error
       const isAuthError = error.graphQLErrors?.some(
@@ -40,19 +106,34 @@ export const ProjectsScreen: React.FC = () => {
                         graphQLError.message === 'Unauthorized'
       );
       
+      logger.setCustomKey('is_auth_error', isAuthError);
+      
       if (isAuthError) {
-        console.log('Authentication error detected, attempting token refresh...');
+        logger.log('ProjectsScreen: Authentication error detected, attempting token refresh');
         const refreshSuccess = await handleTokenRefresh();
         
+        logger.setCustomKey('token_refresh_success', refreshSuccess);
+        
         if (refreshSuccess) {
-          console.log('Token refreshed, retrying query...');
+          logger.log('ProjectsScreen: Token refreshed successfully, retrying query');
           refetch();
         } else {
-          console.log('Token refresh failed, user needs to re-authenticate');
-          // You could redirect to login here if needed
+          logger.log('ProjectsScreen: Token refresh failed, user needs to re-authenticate');
+          logger.logError(new Error('Token refresh failed after projects query auth error'), 'ProjectsScreen');
         }
+      } else {
+        // For non-auth errors, log the full error for debugging
+        logger.logError(error, 'ProjectsScreen: Non-authentication error in projects query');
       }
     },
+    onCompleted: (data) => {
+      // Log successful data load
+      const projectCount = data?.myProjects?.length || 0;
+      logger.log(`ProjectsScreen: Successfully loaded ${projectCount} projects`);
+      logger.setCustomKey('loaded_projects_count', projectCount);
+      logger.setCustomKey('last_successful_projects_load', new Date().toISOString());
+      logger.setCustomKey('auth_fix_working', true);
+    }
   });
 
   const handleProjectPress = (project: Project) => {
@@ -62,9 +143,16 @@ export const ProjectsScreen: React.FC = () => {
   };
 
   const handleRefresh = async () => {
+    logger.log('ProjectsScreen: User initiated manual refresh');
     setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
+    try {
+      await refetch();
+      logger.log('ProjectsScreen: Manual refresh completed successfully');
+    } catch (refreshError) {
+      logger.logError(refreshError, 'ProjectsScreen: Manual refresh failed');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
 
@@ -91,14 +179,21 @@ export const ProjectsScreen: React.FC = () => {
     </View>
   );
 
-  const renderErrorState = () => (
-    <View style={styles.errorContainer}>
-      <Text style={styles.errorTitle}>Something went wrong</Text>
-      <Text style={styles.errorSubtitle}>
-        Unable to load your projects. Please try again.
-      </Text>
-    </View>
-  );
+  const renderErrorState = () => {
+    // Log when error state is rendered
+    logger.log('ProjectsScreen: Rendering error state to user');
+    logger.setCustomKey('error_state_rendered', true);
+    logger.setCustomKey('error_state_rendered_at', new Date().toISOString());
+    
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorTitle}>Something went wrong</Text>
+        <Text style={styles.errorSubtitle}>
+          Unable to load your projects. Please try again.
+        </Text>
+      </View>
+    );
+  };
 
   const renderLoadingState = () => (
     <View style={styles.loadingContainer}>
@@ -113,11 +208,13 @@ export const ProjectsScreen: React.FC = () => {
 
   // Show loading state
   if (loading && !data) {
+    logger.log('ProjectsScreen: Rendering loading state');
     return renderLoadingState();
   }
 
   // Show error state
   if (error) {
+    logger.log('ProjectsScreen: Rendering error state due to error');
     return renderErrorState();
   }
 

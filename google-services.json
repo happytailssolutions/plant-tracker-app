@@ -1,29 +1,21 @@
 {
   "project_info": {
-    "project_number": "788884586325",
-    "project_id": "mytreelocator"
+    "project_number": "238451260985",
+    "project_id": "plant-tracker-cb1ab",
+    "storage_bucket": "plant-tracker-cb1ab.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:788884586325:android:1",
+        "mobilesdk_app_id": "1:238451260985:android:c36a5f442a2b851ca2d7e8",
         "android_client_info": {
           "package_name": "com.planttracker"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "85a90b2qeg935vk088b4k1budjbf724v.apps.googleusercontent.com",
-          "client_type": 3,
-          "android_info": {
-            "package_name": "com.planttracker",
-            "certificate_hash": "548a05f8ba94d91988ae1bf8954c4dbe59330c5a"
-          }
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA8uwTf-eD7zW2xisn6zMZDGRxE-9RzSfY"
+          "current_key": "AIzaSyAkeEpol1xypC4wsGw8zceRy6oKlmSAeI4"
         }
       ],
       "services": {
@@ -34,4 +26,4 @@
     }
   ],
   "configuration_version": "1"
-} 
+}

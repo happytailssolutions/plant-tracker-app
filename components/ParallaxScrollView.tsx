@@ -9,7 +9,7 @@ import Animated, {
 
 import { ThemedView } from '@/components/ThemedView';
 import { useBottomTabOverflow } from '@/components/ui/TabBarBackground';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '../hooks/useColorScheme';
 
 const HEADER_HEIGHT = 250;
 
@@ -79,3 +79,5 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 });
+
+

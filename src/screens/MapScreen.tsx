@@ -15,6 +15,7 @@ import { useLocation } from '../hooks/useLocation';
 import { calculateBoundsFromPins, createRegionFromCoordinates, validateRegion, DEFAULT_REGION } from '../utils/mapUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { filterPinsByTags, extractUniqueTags } from '../utils/tagUtils';
+import { logger } from '../utils/logger';
 
 // Debounce delay for map region changes (in milliseconds)
 const DEBOUNCE_DELAY = 500;
@@ -71,7 +72,16 @@ export const MapScreen: React.FC = () => {
   const { getCurrentLocation, loading: locationLoading } = useLocation();
 
   // GraphQL query for fetching user's projects
-  const { data: projectsData } = useQuery<MyProjectsQueryResponse>(MY_PROJECTS_QUERY);
+  const { data: projectsData } = useQuery<MyProjectsQueryResponse>(MY_PROJECTS_QUERY, {
+    onError: (error) => {
+      logger.log('MapScreen: Projects query error occurred');
+      logger.logGraphQLError('MY_PROJECTS_QUERY_MapScreen', error);
+    },
+    onCompleted: (data) => {
+      const projectCount = data?.myProjects?.length || 0;
+      logger.log(`MapScreen: Successfully loaded ${projectCount} projects`);
+    }
+  });
 
   // GraphQL query for fetching pins within map bounds
   const { data, loading, error, refetch } = useQuery<PinsInBoundsQueryResponse>(
