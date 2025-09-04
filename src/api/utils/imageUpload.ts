@@ -2,6 +2,7 @@ import { supabase } from '../supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
+import { analytics } from '../../utils/analytics';
 
 // Polyfill for atob function (base64 to binary) if not available
 const atobPolyfill = (str: string): string => {
@@ -165,8 +166,15 @@ export const uploadImageToStorage = async (
   retryCount: number = 0
 ): Promise<UploadedImage> => {
   const maxRetries = 3;
+  const startTime = Date.now();
   
   try {
+    // Track upload attempt
+    analytics.trackFeatureUsage('image_upload', 'started', {
+      retry_count: retryCount,
+      folder
+    });
+    
     // Generate a unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
@@ -235,6 +243,11 @@ export const uploadImageToStorage = async (
         .from('images')
         .getPublicUrl(fileName);
       
+      // Track successful upload
+      const duration = Date.now() - startTime;
+      analytics.trackImageUpload(true, retryCount, blob.size);
+      analytics.trackPerformanceMetric('image_upload_duration', duration);
+      
       return {
         url: urlData.publicUrl,
         path: fileName,
@@ -287,6 +300,11 @@ export const uploadImageToStorage = async (
             .from('images')
             .getPublicUrl(fileName);
           
+          // Track successful upload (fallback method)
+          const duration = Date.now() - startTime;
+          analytics.trackImageUpload(true, retryCount, bytes.length);
+          analytics.trackPerformanceMetric('image_upload_duration_fallback', duration);
+          
           return {
             url: urlData.publicUrl,
             path: fileName,
@@ -301,6 +319,10 @@ export const uploadImageToStorage = async (
     }
     
   } catch (error) {
+    // Track failed upload
+    analytics.trackImageUpload(false, retryCount);
+    analytics.categorizeError(error as Error, 'Image upload failed');
+    
     // Retry logic for network errors
     if (retryCount < maxRetries && (
       error instanceof Error && (

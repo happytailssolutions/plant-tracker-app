@@ -16,12 +16,26 @@ import { calculateBoundsFromPins, createRegionFromCoordinates, validateRegion, D
 import { Ionicons } from '@expo/vector-icons';
 import { filterPinsByTags, extractUniqueTags } from '../utils/tagUtils';
 import { logger } from '../utils/logger';
+import { analytics } from '../utils/analytics';
 
 // Debounce delay for map region changes (in milliseconds)
 const DEBOUNCE_DELAY = 500;
 
 export const MapScreen: React.FC = () => {
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
+  
+  // Track screen load for user journey monitoring
+  useEffect(() => {
+    const loadStartTime = Date.now();
+    analytics.trackScreenLoad('MapScreen', loadStartTime);
+    
+    // Track initial map state
+    analytics.trackUserBehavior('map_screen_loaded', {
+      has_selected_project: !!selectedProjectId,
+      map_type: mapType,
+      auto_center_mode: autoCenterMode
+    });
+  }, []);
   
 
   const [isPinEditorVisible, setIsPinEditorVisible] = useState(false);
@@ -74,12 +88,14 @@ export const MapScreen: React.FC = () => {
   // GraphQL query for fetching user's projects
   const { data: projectsData } = useQuery<MyProjectsQueryResponse>(MY_PROJECTS_QUERY, {
     onError: (error) => {
-      logger.log('MapScreen: Projects query error occurred');
-      logger.logGraphQLError('MY_PROJECTS_QUERY_MapScreen', error);
+      analytics.trackGraphQLError('MY_PROJECTS_QUERY_MapScreen', error);
+      analytics.categorizeError(error, 'MapScreen: Projects query failed');
     },
     onCompleted: (data) => {
       const projectCount = data?.myProjects?.length || 0;
-      logger.log(`MapScreen: Successfully loaded ${projectCount} projects`);
+      analytics.trackFeatureUsage('projects_loading', 'completed', {
+        project_count: projectCount
+      });
     }
   });
 
@@ -119,11 +135,22 @@ export const MapScreen: React.FC = () => {
   const [createPin] = useMutation<CreatePinMutationResponse, CreatePinMutationVariables>(
     CREATE_PIN_MUTATION,
     {
-      onCompleted: () => {
+      onCompleted: (data) => {
+        // Track successful pin creation
+        analytics.trackPinCreation(
+          data?.createPin?.pinType || 'unknown',
+          !!(data?.createPin?.metadata?.photos?.length),
+          {
+            latitude: data?.createPin?.latitude,
+            longitude: data?.createPin?.longitude
+          }
+        );
+        
         // Refetch pins after creation
         refetch();
       },
       onError: (error) => {
+        analytics.categorizeError(error, 'MapScreen: Pin creation failed');
         Alert.alert('Error', `Failed to create pin: ${error.message}`);
       },
     }

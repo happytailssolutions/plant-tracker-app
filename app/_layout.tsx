@@ -12,8 +12,10 @@ import { useAuth } from '../src/hooks/useAuth';
 import { useEffect } from 'react';
 import { useAuthStore } from '../src/state/authStore';
 import { logger } from '../src/utils/logger';
+import { analytics } from '../src/utils/analytics';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { setupGlobalErrorHandling } from '../src/utils/errorHandler';
+import { initializeFirebase } from '../src/utils/firebaseInit';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -40,45 +42,65 @@ export default function RootLayout() {
   }, [loaded]);
 
   useEffect(() => {
-    try {
-      // Setup global error handling first
-      setupGlobalErrorHandling();
-      
-      // Initialize logger and log app startup
-      logger.log('App starting up');
-      logger.setCustomKey('app_start_time', new Date().toISOString());
-      logger.setCustomKey('app_version', '1.0.0');
-      
-      logger.log('Starting auth initialization');
-      initializeAuth();
-      logger.log('Auth initialization started successfully');
-    } catch (error) {
-      console.error('Failed to initialize app:', error);
-      // Don't call logger.logError here as it might not be initialized yet
-    }
+    const initializeApp = async () => {
+      try {
+        console.log('[App] Starting app initialization...');
+        
+        // Initialize Firebase first
+        const firebaseReady = await initializeFirebase();
+        console.log('[App] Firebase initialization result:', firebaseReady);
+        
+        // Setup global error handling
+        setupGlobalErrorHandling();
+        
+        // Initialize logger and log app startup
+        await logger.log('App starting up');
+        await analytics.trackAppMetrics();
+        
+        await logger.log('Starting auth initialization');
+        await initializeAuth();
+        await logger.log('Auth initialization started successfully');
+        
+        console.log('[App] App initialization completed');
+      } catch (error) {
+        console.error('[App] Failed to initialize app:', error);
+        // Don't call logger.logError here as it might not be initialized yet
+      }
+    };
+    
+    initializeApp();
+    
+    // Cleanup on app exit
+    return () => {
+      analytics.endSession();
+    };
   }, [initializeAuth]);
 
   useEffect(() => {
     if (!loaded || !isAuthInitialized) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
-    
-    try {
-      logger.log(`Navigation check - isAuthenticated: ${isAuthenticated}, inAuthGroup: ${inAuthGroup}, segments: ${JSON.stringify(segments)}`);
+    const handleNavigation = async () => {
+      const inAuthGroup = segments[0] === '(auth)';
       
-      if (isAuthenticated && inAuthGroup) {
-        // User is authenticated but in auth group, redirect to tabs
-        logger.log('Redirecting authenticated user to tabs');
-        setTimeout(() => router.replace('/(tabs)'), 0);
-      } else if (!isAuthenticated && !inAuthGroup) {
-        // User is not authenticated and not in auth group, redirect to login
-        logger.log('Redirecting unauthenticated user to login');
-        setTimeout(() => router.replace('/(auth)/login'), 0);
+      try {
+        await logger.log(`Navigation check - isAuthenticated: ${isAuthenticated}, inAuthGroup: ${inAuthGroup}, segments: ${JSON.stringify(segments)}`);
+        
+        if (isAuthenticated && inAuthGroup) {
+          // User is authenticated but in auth group, redirect to tabs
+          await logger.log('Redirecting authenticated user to tabs');
+          setTimeout(() => router.replace('/(tabs)'), 0);
+        } else if (!isAuthenticated && !inAuthGroup) {
+          // User is not authenticated and not in auth group, redirect to login
+          await logger.log('Redirecting unauthenticated user to login');
+          setTimeout(() => router.replace('/(auth)/login'), 0);
+        }
+      } catch (error) {
+        console.error('[App] Navigation error:', error);
+        // Don't call logger.logError here as it might cause issues
       }
-    } catch (error) {
-      console.error('Navigation error:', error);
-      // Don't call logger.logError here as it might cause issues
-    }
+    };
+    
+    handleNavigation();
   }, [isAuthenticated, segments, loaded, isAuthInitialized, router]);
 
   return (

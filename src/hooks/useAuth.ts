@@ -5,6 +5,7 @@ import { useAuthStore } from '../state/authStore';
 import { supabase } from '../api/supabase';
 import Constants from 'expo-constants';
 import { jwtDecode } from 'jwt-decode';
+import { analytics } from '../utils/analytics';
 
 // Initialize Google Sign-In
 try {
@@ -110,6 +111,9 @@ export const useAuth = () => {
     try {
       console.log('🔐 Starting Google Sign-In process...');
       
+      // Track authentication attempt
+      analytics.trackLoginAttempt('google', true);
+      
       // Log configuration
       const webClientId = Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
       console.log('🔐 Web Client ID configured:', webClientId ? 'Yes' : 'No');
@@ -153,6 +157,13 @@ export const useAuth = () => {
       await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(userData));
       
       setToken(data.session.access_token, userData);
+      
+      // Track successful authentication
+      analytics.trackAuthEvent('login_completed', true, {
+        method: 'google',
+        user_id: userData.id,
+        user_email: userData.email
+      });
 
     } catch (err: any) {
       console.error('🔐 Google Sign-In error:', err);
@@ -160,12 +171,9 @@ export const useAuth = () => {
       console.error('🔐 Error message:', err.message);
       console.error('🔐 Full error object:', JSON.stringify(err, null, 2));
       
-      // Log to Crashlytics for better debugging
-      try {
-        logger.logError(err, `Google Sign-In failed - Code: ${err.code}, Message: ${err.message}`);
-      } catch (loggerError) {
-        console.error('Failed to log to Crashlytics:', loggerError);
-      }
+      // Track failed authentication
+      analytics.trackLoginAttempt('google', false, err.code);
+      analytics.categorizeError(err, 'Google Sign-In failed');
       
       if (err.code === statusCodes.SIGN_IN_CANCELLED) {
         setError('Sign-in was cancelled');

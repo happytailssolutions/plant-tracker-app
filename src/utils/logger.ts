@@ -1,12 +1,21 @@
-import crashlytics from '@react-native-firebase/crashlytics';
 import Constants from 'expo-constants';
+import { 
+  initializeCrashlyticsWrapper, 
+  safeCrashlyticsLog, 
+  safeCrashlyticsError, 
+  safeCrashlyticsSetCustomKey, 
+  isCrashlyticsAvailable,
+  getCrashlyticsStatus
+} from './crashlyticsWrapper';
 
 class Logger {
   private static instance: Logger;
+  private isInitialized = false;
+  private initializationPromise: Promise<void> | null = null;
   
   private constructor() {
     // Initialize crashlytics
-    this.initCrashlytics();
+    this.initializationPromise = this.initCrashlytics();
   }
 
   public static getInstance(): Logger {
@@ -16,15 +25,26 @@ class Logger {
     return Logger.instance;
   }
 
-  private async initCrashlytics() {
+  private async initCrashlytics(): Promise<void> {
     try {
-      // Enable crashlytics immediately
-      await crashlytics().setCrashlyticsCollectionEnabled(true);
+      console.log('[Logger] Starting Crashlytics initialization...');
+      
+      // Use the wrapper to initialize
+      const success = await initializeCrashlyticsWrapper();
+      
+      if (!success) {
+        throw new Error('CrashlyticsWrapper initialization failed');
+      }
+      
+      // Log the status
+      const status = getCrashlyticsStatus();
+      console.log('[Logger] Crashlytics status:', status);
       
       // Set basic app info
-      crashlytics().setCustomKey('app_version', '1.0.0');
-      crashlytics().setCustomKey('build_type', __DEV__ ? 'debug' : 'release');
-      crashlytics().setCustomKey('platform', 'android');
+      safeCrashlyticsSetCustomKey('app_version', '1.0.0');
+      safeCrashlyticsSetCustomKey('build_type', __DEV__ ? 'debug' : 'release');
+      safeCrashlyticsSetCustomKey('platform', 'android');
+      safeCrashlyticsSetCustomKey('initialization_timestamp', new Date().toISOString());
       
       // Log all environment variables
       const envVars = {
@@ -39,58 +59,77 @@ class Logger {
 
       // Log environment configuration
       Object.entries(envVars).forEach(([key, value]) => {
-        try {
-          crashlytics().setCustomKey(key, value || 'undefined');
-        } catch (setKeyError) {
-          if (__DEV__) {
-            console.error(`Failed to set custom key ${key}:`, setKeyError);
-          }
-        }
+        safeCrashlyticsSetCustomKey(key, value || 'undefined');
       });
       
-      this.log('Crashlytics initialized successfully');
+      // Send a test log to verify it's working
+      safeCrashlyticsLog('Logger initialized successfully');
+      
+      // Mark as initialized
+      this.isInitialized = true;
+      console.log('[Logger] Crashlytics initialized successfully');
+      
     } catch (error) {
       // If crashlytics fails to initialize, log it but don't crash the app
-      console.error('Failed to initialize Crashlytics:', error);
+      console.error('[Logger] Failed to initialize Crashlytics:', error);
+      this.isInitialized = false;
     }
   }
 
-  public log(message: string, error?: any) {
+  // Ensure Crashlytics is initialized before any operation
+  private async ensureInitialized(): Promise<void> {
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+    }
+  }
+
+  public async log(message: string, error?: any) {
     // Always log to console for debugging
     console.log(`[Logger] ${message}`);
     if (error) console.error(`[Logger Error]`, error);
 
     try {
-      // Always log to crashlytics
-      crashlytics().log(`${new Date().toISOString()}: ${message}`);
+      // Ensure Crashlytics is initialized before logging
+      await this.ensureInitialized();
+      
+      if (!this.isInitialized || !isCrashlyticsAvailable()) {
+        console.warn('[Logger] Crashlytics not initialized, skipping log');
+        return;
+      }
+
+      // Log to crashlytics using wrapper
+      safeCrashlyticsLog(message);
       
       if (error) {
         // Log error with additional context
-        crashlytics().recordError(error, message);
+        safeCrashlyticsError(error, message);
       }
     } catch (crashlyticsError) {
       // If crashlytics fails, always log to console
-      console.error('Crashlytics logging failed:', crashlyticsError);
+      console.error('[Logger] Crashlytics logging failed:', crashlyticsError);
     }
   }
 
-  public setUser(userId: string) {
+  public async setUser(userId: string) {
     try {
-      crashlytics().setUserId(userId);
-    } catch (error) {
-      if (__DEV__) {
-        console.error('Failed to set user in Crashlytics:', error);
+      await this.ensureInitialized();
+      if (this.isInitialized && isCrashlyticsAvailable()) {
+        // Note: setUserId might not be available in wrapper, use setCustomKey instead
+        safeCrashlyticsSetCustomKey('user_id', userId);
       }
+    } catch (error) {
+      console.error('[Logger] Failed to set user in Crashlytics:', error);
     }
   }
 
-  public setCustomKey(key: string, value: string | number | boolean) {
+  public async setCustomKey(key: string, value: string | number | boolean) {
     try {
-      crashlytics().setCustomKey(key, value);
-    } catch (error) {
-      if (__DEV__) {
-        console.error('Failed to set custom key in Crashlytics:', error);
+      await this.ensureInitialized();
+      if (this.isInitialized && isCrashlyticsAvailable()) {
+        safeCrashlyticsSetCustomKey(key, value);
       }
+    } catch (error) {
+      console.error('[Logger] Failed to set custom key in Crashlytics:', error);
     }
   }
 
@@ -104,59 +143,65 @@ class Logger {
     if (context) console.error(`[Logger Context]`, context);
 
     try {
+      // Ensure Crashlytics is initialized
+      await this.ensureInitialized();
+      
+      if (!this.isInitialized || !isCrashlyticsAvailable()) {
+        console.warn('[Logger] Crashlytics not initialized, skipping error log');
+        return;
+      }
+
       // Set additional context
       if (context) {
-        crashlytics().setCustomKey('error_context', context);
+        safeCrashlyticsSetCustomKey('error_context', context);
       }
       
       // Set timestamp
-      crashlytics().setCustomKey('error_timestamp', new Date().toISOString());
+      safeCrashlyticsSetCustomKey('error_timestamp', new Date().toISOString());
 
       // Log the full error
-      crashlytics().recordError(error);
-      
-      // Also log as a regular log entry
-      crashlytics().log(`ERROR: ${errorMessage} | Context: ${context || 'none'}`);
+      safeCrashlyticsError(error, context);
       
       console.log('[Logger] Error successfully logged to Crashlytics');
     } catch (crashlyticsError) {
-      console.error('Failed to log error to Crashlytics:', crashlyticsError);
+      console.error('[Logger] Failed to log error to Crashlytics:', crashlyticsError);
     }
   }
 
-  public logNavigation(screenName: string) {
-    this.log(`Navigation: ${screenName}`);
+  public async logNavigation(screenName: string) {
+    await this.log(`Navigation: ${screenName}`);
     try {
-      crashlytics().setCustomKey('current_screen', screenName);
-    } catch (error) {
-      if (__DEV__) {
-        console.error('Failed to set navigation in Crashlytics:', error);
+      await this.ensureInitialized();
+      if (this.isInitialized && isCrashlyticsAvailable()) {
+        safeCrashlyticsSetCustomKey('current_screen', screenName);
       }
+    } catch (error) {
+      console.error('[Logger] Failed to set navigation in Crashlytics:', error);
     }
   }
 
-  public logGraphQLError(operation: string, error: any) {
-    this.logError(error, `GraphQL Operation: ${operation}`);
+  public async logGraphQLError(operation: string, error: any) {
+    await this.logError(error, `GraphQL Operation: ${operation}`);
     try {
-      crashlytics().setCustomKey('last_failed_graphql_operation', operation);
-    } catch (error) {
-      if (__DEV__) {
-        console.error('Failed to set GraphQL error in Crashlytics:', error);
+      await this.ensureInitialized();
+      if (this.isInitialized && isCrashlyticsAvailable()) {
+        safeCrashlyticsSetCustomKey('last_failed_graphql_operation', operation);
       }
+    } catch (error) {
+      console.error('[Logger] Failed to set GraphQL error in Crashlytics:', error);
     }
   }
 
-  // Test function to verify Crashlytics is working
-  public testCrashlytics() {
-    this.log('Testing Crashlytics integration');
-    crashlytics().setCustomKey('test_key', 'test_value');
-    
-    // Force a test crash (only in development)
-    if (__DEV__) {
-      this.log('Crashlytics test - this will cause a crash in development');
-      // Uncomment the line below to test crash reporting
-      // crashlytics().crash();
-    }
+
+
+  // Get initialization status
+  public getInitializationStatus(): { isInitialized: boolean; promise: Promise<void> | null; crashlyticsAvailable: boolean; crashlyticsStatus: any } {
+    return {
+      isInitialized: this.isInitialized,
+      promise: this.initializationPromise,
+      crashlyticsAvailable: isCrashlyticsAvailable(),
+      crashlyticsStatus: getCrashlyticsStatus()
+    };
   }
 }
 

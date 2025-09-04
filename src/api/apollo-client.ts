@@ -2,6 +2,7 @@ import { ApolloClient, InMemoryCache, ApolloLink, HttpLink } from '@apollo/clien
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { logger } from '../utils/logger';
+import { analytics } from '../utils/analytics';
 import { useAuthStore } from '../state/authStore';
 import Constants from 'expo-constants';
 
@@ -34,12 +35,12 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
         operationName: operation.operationName,
       };
       
-      logger.logGraphQLError(operation.operationName, new Error(message));
+      analytics.trackGraphQLError(operation.operationName, new Error(message));
     });
   }
 
   if (networkError) {
-    logger.logError(networkError, `Network Error for operation: ${operation.operationName}`);
+    analytics.categorizeError(networkError, `Network Error for operation: ${operation.operationName}`);
   }
 });
 

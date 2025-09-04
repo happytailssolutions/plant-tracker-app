@@ -14,9 +14,6 @@ Write-Host "Environment variables set for production build"
 function Install-Dependencies {
     Write-Host "Checking and installing dependencies..."
     
-    # Install necessary npm packages
-    npm install --save-dev @expo/config-plugins @react-native-firebase/app
-    
     # Install other project dependencies
     npm install
     
